@@ -54,6 +54,10 @@ Standing test: could a player who never read a design document work out what thi
 - 2026-09-02: "Build the village, sprigs doing things around it, defend that little area at
   night against monsters that go anywhere." Arc 1b on the roadmap: build tasks, the hearth,
   standing village work, raiders that chew what you built, the hut.
+- 2026-09-02: "Make the sprigs way more cute, like the real thing." Rebuilt: a big round head
+  on a small body, two dark eyes, stick arms and legs, one stem from the crown with a leaf, a
+  bud, or a five-petal bloom by maturity; sprouts are the stem and its top out of the ground.
+  Original primitives; proportions are the reference, nothing else.
 - 2026-09-02: "Hold Space to auto-throw, faster fights." Held Space repeats from 0.22 s at a
   cadence ramping to 0.15 s (Pikmin's throw cooldown).
 

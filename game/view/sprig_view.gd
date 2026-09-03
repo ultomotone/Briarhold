@@ -96,10 +96,10 @@ func update(w: SimWorld, alpha: float, selected: String) -> void:
 			continue
 		scounts[sp.type_id] = i + 1
 		var p: Vector3 = sp.pos
-		var scale: float = 0.7 + 0.25 * float(sp.maturity)
+		var scale: float = 1.0
 		if sp.fl_t >= 0.0:
 			p = Throw.point_at(sp.fl_start, sp.pos, sp.fl_total, g, sp.fl_t)
-			scale = 0.5
+			scale = 0.6
 		var b := Basis(Vector3.UP, float(sp.id) * 0.7).scaled(Vector3(scale, scale, scale))
 		mi.multimesh.set_instance_transform(i, Transform3D(b, p))
 		mi.multimesh.set_instance_color(i, Color(0.9, 0.9, 0.9, 1.0))
@@ -109,30 +109,52 @@ func update(w: SimWorld, alpha: float, selected: String) -> void:
 		mi.multimesh.visible_instance_count = int(scounts.get(id, 0))
 
 
-## A sprig: a bulb body, a thin stalk, a leaf on top. Vertex colour picks tint vs stalk in the shader.
+## A sprig (owner verdict 2026-09-02: cuter, closer to the reference creature's proportions):
+## a big round head on a small body, two dark eyes, stick arms and legs, one stem out of the
+## head with a leaf, a bud, or a bloom on it. Part ids ride UV.x so the shader can pick colours
+## and show only the top that matches maturity. Parts: 0 body/head, 1 stem, 2 leaf, 3 bud,
+## 4 petals, 5 bloom centre, 6 eyes, 7 limbs.
 static func _make_mesh() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	# body: low-poly sphere
-	_sphere(st, Vector3(0.0, 0.22, 0.0), 0.2, 8, 5, Color(1.0, 0.0, 0.0))
-	# head
-	_sphere(st, Vector3(0.0, 0.5, 0.0), 0.15, 8, 5, Color(1.0, 0.0, 0.0))
-	# stalk
-	_cyl(st, Vector3(0.0, 0.62, 0.0), Vector3(0.0, 0.95, 0.0), 0.02, 5, Color(0.0, 1.0, 0.0))
-	# leaf: two triangles, double-sided by cull_disabled
-	var l0 := Vector3(0.0, 0.95, 0.0)
-	var l1 := Vector3(0.12, 1.02, 0.1)
-	var l2 := Vector3(0.0, 1.16, 0.22)
-	var l3 := Vector3(-0.12, 1.02, 0.1)
-	_quad(st, l0, l1, l2, l3, Color(0.0, 0.0, 1.0))
-	# feet
-	_sphere(st, Vector3(0.09, 0.05, 0.05), 0.06, 6, 3, Color(1.0, 0.0, 0.0))
-	_sphere(st, Vector3(-0.09, 0.05, 0.05), 0.06, 6, 3, Color(1.0, 0.0, 0.0))
+	# legs
+	_cyl(st, Vector3(-0.06, 0.0, 0.0), Vector3(-0.06, 0.2, 0.0), 0.025, 5, 7)
+	_cyl(st, Vector3(0.06, 0.0, 0.0), Vector3(0.06, 0.2, 0.0), 0.025, 5, 7)
+	_sphere(st, Vector3(-0.06, 0.02, 0.02), 0.035, 6, 3, 7)
+	_sphere(st, Vector3(0.06, 0.02, 0.02), 0.035, 6, 3, 7)
+	# body: a small bulb
+	_sphere(st, Vector3(0.0, 0.3, 0.0), 0.14, 10, 6, 0)
+	# arms: thin, angled down and a little forward
+	_cyl(st, Vector3(-0.12, 0.36, 0.0), Vector3(-0.21, 0.22, 0.05), 0.02, 5, 7)
+	_cyl(st, Vector3(0.12, 0.36, 0.0), Vector3(0.21, 0.22, 0.05), 0.02, 5, 7)
+	# head: big and round, the whole character
+	_sphere(st, Vector3(0.0, 0.58, 0.0), 0.21, 12, 8, 0)
+	# eyes: two dark beads, forward (+z is the way it faces)
+	_sphere(st, Vector3(-0.085, 0.6, 0.175), 0.045, 7, 4, 6)
+	_sphere(st, Vector3(0.085, 0.6, 0.175), 0.045, 7, 4, 6)
+	# stem from the crown
+	_cyl(st, Vector3(0.0, 0.76, 0.0), Vector3(0.0, 1.02, 0.0), 0.018, 5, 1)
+	# leaf (maturity 0)
+	var l0 := Vector3(0.0, 1.0, 0.0)
+	var l1 := Vector3(0.13, 1.06, 0.12)
+	var l2 := Vector3(0.0, 1.2, 0.26)
+	var l3 := Vector3(-0.13, 1.06, 0.12)
+	_quad(st, l0, l1, l2, l3, 2)
+	# bud (maturity 1)
+	_sphere(st, Vector3(0.0, 1.07, 0.0), 0.075, 7, 4, 3)
+	# bloom (maturity 2): five petals and a centre
+	for i: int in 5:
+		var a: float = float(i) / 5.0 * TAU
+		var dir := Vector3(sin(a), 0.0, cos(a))
+		var side := Vector3(cos(a), 0.0, -sin(a))
+		var c := Vector3(0.0, 1.05, 0.0)
+		_quad(st, c, c + dir * 0.09 + side * 0.07 + Vector3(0.0, 0.03, 0.0), c + dir * 0.19 + Vector3(0.0, 0.05, 0.0), c + dir * 0.09 - side * 0.07 + Vector3(0.0, 0.03, 0.0), 4)
+	_sphere(st, Vector3(0.0, 1.06, 0.0), 0.05, 7, 4, 5)
 	st.generate_normals()
 	return st.commit()
 
 
-static func _sphere(st: SurfaceTool, c: Vector3, r: float, seg: int, rings: int, col: Color) -> void:
+static func _sphere(st: SurfaceTool, c: Vector3, r: float, seg: int, rings: int, part: int) -> void:
 	for i: int in rings:
 		var t0: float = PI * float(i) / float(rings)
 		var t1: float = PI * float(i + 1) / float(rings)
@@ -143,24 +165,35 @@ static func _sphere(st: SurfaceTool, c: Vector3, r: float, seg: int, rings: int,
 			var b: Vector3 = c + Vector3(sin(t0) * cos(p1), cos(t0), sin(t0) * sin(p1)) * r
 			var cc: Vector3 = c + Vector3(sin(t1) * cos(p1), cos(t1), sin(t1) * sin(p1)) * r
 			var d: Vector3 = c + Vector3(sin(t1) * cos(p0), cos(t1), sin(t1) * sin(p0)) * r
-			_quad(st, a, b, cc, d, col)
+			_quad(st, a, b, cc, d, part)
 
 
-static func _cyl(st: SurfaceTool, a: Vector3, b: Vector3, r: float, seg: int, col: Color) -> void:
+static func _cyl(st: SurfaceTool, a: Vector3, b: Vector3, r: float, seg: int, part: int) -> void:
+	var axis: Vector3 = (b - a).normalized()
+	var ref: Vector3 = Vector3.RIGHT if absf(axis.dot(Vector3.RIGHT)) < 0.9 else Vector3.FORWARD
+	var u: Vector3 = axis.cross(ref).normalized()
+	var v: Vector3 = axis.cross(u).normalized()
 	for j: int in seg:
 		var p0: float = TAU * float(j) / float(seg)
 		var p1: float = TAU * float(j + 1) / float(seg)
-		var o0 := Vector3(cos(p0), 0.0, sin(p0)) * r
-		var o1 := Vector3(cos(p1), 0.0, sin(p1)) * r
-		_quad(st, a + o0, a + o1, b + o1, b + o0, col)
+		var o0: Vector3 = (u * cos(p0) + v * sin(p0)) * r
+		var o1: Vector3 = (u * cos(p1) + v * sin(p1)) * r
+		_quad(st, a + o0, a + o1, b + o1, b + o0, part)
 
 
-static func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, _col: Color) -> void:
+static func _quad(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, d: Vector3, part: int) -> void:
+	var uv := Vector2(float(part), 0.0)
+	st.set_uv(uv)
 	st.add_vertex(a)
+	st.set_uv(uv)
 	st.add_vertex(c)
+	st.set_uv(uv)
 	st.add_vertex(b)
+	st.set_uv(uv)
 	st.add_vertex(a)
+	st.set_uv(uv)
 	st.add_vertex(d)
+	st.set_uv(uv)
 	st.add_vertex(c)
 
 
@@ -170,31 +203,46 @@ render_mode cull_disabled, depth_draw_opaque;
 uniform vec4 tint : source_color = vec4(1.0);
 uniform vec4 stalk : source_color = vec4(0.5, 0.45, 0.3, 1.0);
 uniform float buried = 0.0;
-varying float part; // 0 body, 1 stalk, 2 leaf
+varying float part;
 varying vec4 icol;
 void vertex() {
 	float phase = INSTANCE_CUSTOM.x;
 	float maturity = INSTANCE_CUSTOM.y;
 	float moving = INSTANCE_CUSTOM.z;
-	part = VERTEX.y < 0.61 ? 0.0 : (VERTEX.y < 0.945 ? 1.0 : 2.0);
-	float w = clamp(VERTEX.y - 0.5, 0.0, 1.0);
-	VERTEX.x += sin(TIME * 2.2 + phase * 6.283) * 0.04 * w;
-	VERTEX.z += sin(TIME * 1.7 + phase * 4.1) * 0.03 * w;
-	VERTEX.y += moving * abs(sin(TIME * 9.0 + phase * 6.283)) * 0.05;
-	if (part > 1.5) {
-		vec3 tip = vec3(0.0, 0.95, 0.0);
-		VERTEX = tip + (VERTEX - tip) * (1.0 + maturity * 0.55);
+	part = floor(UV.x + 0.5);
+	vec3 crown = vec3(0.0, 1.0, 0.0);
+	// only the top that matches maturity exists; the others collapse into the stem tip
+	bool hide = (part == 2.0 && maturity > 0.5) || (part == 3.0 && (maturity < 0.5 || maturity > 1.5)) || ((part == 4.0 || part == 5.0) && maturity < 1.5);
+	if (buried > 0.5 && (part == 0.0 || part == 6.0 || part == 7.0)) {
+		hide = true;
 	}
+	if (hide) {
+		VERTEX = crown;
+	}
+	// the top sways; the body hops when walking; the head tilts a little with the step
+	float w = clamp((VERTEX.y - 0.75) * 2.0, 0.0, 1.0);
+	VERTEX.x += sin(TIME * 2.2 + phase * 6.283) * 0.05 * w;
+	VERTEX.z += sin(TIME * 1.7 + phase * 4.1) * 0.035 * w;
+	float step_ = sin(TIME * 9.0 + phase * 6.283);
+	VERTEX.y += moving * abs(step_) * 0.05;
+	VERTEX.z += moving * step_ * 0.02 * clamp(VERTEX.y, 0.0, 1.0);
 	if (buried > 0.5) {
-		VERTEX.y -= 0.42;
+		// a sprout is the stem and its top, out of the ground
+		VERTEX.y -= 0.72;
 	}
 	icol = INSTANCE_CUSTOM;
 }
 void fragment() {
-	vec3 leaf = mix(vec3(0.38, 0.62, 0.24), vec3(0.96, 0.84, 0.5), clamp(icol.y - 1.0, 0.0, 1.0));
-	vec3 body = part < 0.5 ? tint.rgb : (part < 1.5 ? stalk.rgb : leaf);
-	ALBEDO = body * COLOR.rgb;
-	ROUGHNESS = 0.85;
-	SPECULAR = 0.2;
+	vec3 leaf = vec3(0.4, 0.66, 0.26);
+	vec3 col = tint.rgb;
+	if (part == 1.0) { col = stalk.rgb; }
+	else if (part == 2.0) { col = leaf; }
+	else if (part == 3.0) { col = leaf * 0.85; }
+	else if (part == 4.0) { col = vec3(0.98, 0.97, 0.9); }
+	else if (part == 5.0) { col = vec3(1.0, 0.82, 0.25); }
+	else if (part == 6.0) { col = vec3(0.06, 0.07, 0.1); }
+	ALBEDO = col * COLOR.rgb;
+	ROUGHNESS = part == 6.0 ? 0.25 : 0.8;
+	SPECULAR = part == 6.0 ? 0.6 : 0.25;
 }
 """
