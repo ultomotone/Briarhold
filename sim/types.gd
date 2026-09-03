@@ -37,6 +37,7 @@ class SprigType:
 	var speed: float
 	var strength: int
 	var throw_range: float
+	var throw_height: float
 	var damage: float
 	var attack: String # "latch" | "impact"
 	var immune: PackedStringArray
@@ -53,6 +54,7 @@ class SprigType:
 		t.speed = Types._f(d, "speed", 4.5)
 		t.strength = Types._i(d, "strength", 1)
 		t.throw_range = Types._f(d, "throw_range", 7.0)
+		t.throw_height = Types._f(d, "throw_height", 1.5)
 		t.damage = Types._f(d, "damage", 10.0)
 		t.attack = Types._s(d, "attack", "latch")
 		t.immune = Types._sa(d, "immune")
@@ -107,6 +109,8 @@ class EnemyType:
 	var telegraph_seconds: float
 	var attack_cooldown: float
 	var itch_damage: float
+	var itch_time: float
+	var back_multiplier: float
 	var shake_stun_seconds: float
 	var wake_radius: float
 	var leash_radius: float
@@ -134,6 +138,8 @@ class EnemyType:
 		t.telegraph_seconds = Types._f(d, "telegraph_seconds", 0.6)
 		t.attack_cooldown = Types._f(d, "attack_cooldown", 1.5)
 		t.itch_damage = Types._f(d, "itch_damage", 100.0)
+		t.itch_time = Types._f(d, "itch_time", 3.0)
+		t.back_multiplier = Types._f(d, "back_multiplier", 1.0)
 		t.shake_stun_seconds = Types._f(d, "shake_stun_seconds", 0.5)
 		t.wake_radius = Types._f(d, "wake_radius", 6.0)
 		t.leash_radius = Types._f(d, "leash_radius", 14.0)
@@ -157,6 +163,9 @@ class HazardType:
 	var flee: bool
 	var knight_damage_per_sec: float
 	var colour_key: String
+	var speed_mult: float
+	var hazard_leave_cures: bool
+	var disables_attack: bool
 
 	static func from_dict(d: Dictionary) -> HazardType:
 		var t := HazardType.new()
@@ -168,4 +177,7 @@ class HazardType:
 		t.flee = Types._b(d, "flee")
 		t.knight_damage_per_sec = Types._f(d, "knight_damage_per_sec")
 		t.colour_key = Types._s(d, "colour_key")
+		t.speed_mult = Types._f(d, "speed_mult", 1.0)
+		t.hazard_leave_cures = Types._b(d, "hazard_leave_cures")
+		t.disables_attack = Types._b(d, "disables_attack")
 		return t

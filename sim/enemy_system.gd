@@ -10,8 +10,10 @@ static func step(w: SimWorld, dt: float) -> void:
 			continue
 		var t: Types.EnemyType = w.enemy_type(e)
 		e.cooldown = maxf(0.0, e.cooldown - dt)
-		# shake off whoever is hanging on once the itch passes the threshold
-		if e.itch >= t.itch_damage and e.state != Entities.Enemy.State.SHAKE:
+		e.itch_t += dt
+		# shake off whoever is hanging on: enough damage AND enough time since the last shake,
+		# so a burst cannot shake it early and a trickle cannot shake it forever
+		if e.itch >= t.itch_damage and e.itch_t >= t.itch_time and e.state != Entities.Enemy.State.SHAKE:
 			e.state = Entities.Enemy.State.SHAKE
 			e.timer = t.shake_stun_seconds
 			e.wind = 0.0
@@ -35,6 +37,7 @@ static func step(w: SimWorld, dt: float) -> void:
 				e.timer -= dt
 				if e.timer <= 0.0:
 					e.itch = 0.0
+					e.itch_t = 0.0
 					e.state = Entities.Enemy.State.IDLE
 			Entities.Enemy.State.RETREAT:
 				_retreat(w, e, t, dt)

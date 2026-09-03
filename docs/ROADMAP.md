@@ -11,6 +11,10 @@ seconds of play.
 
 - [x] S000 Vertical slice: field, knight, shrine, squad verbs, carry, seeds, grub, vent, gate,
   night, shell, save, gate, doctrine.
+- [x] S000b Pikifen pass: formation from body size, shuffle deadband, whistle in 0.45 s,
+  ripest-first throws to a fixed apex with auto-throw, nearest-wins idle work, chase leash, hex
+  dismiss piles, real carry curve with spot claiming, deterministic seed spiral, uneven maturity,
+  two-gate shake, hazard status fields. `docs/research/pikifen-notes.md`.
 
 ## Arc 1 — Feel and legibility (the slice made honest)
 
@@ -43,14 +47,19 @@ seconds of play.
 - [ ] S013 Maturity that matters: bloom sprigs carry at ×1.2, slap ×1.1; the chip shows the
   bloom count.
 - [ ] S014 Shrine storage: inside/outside counts on the chip; stand at a shrine and hold F to
-  withdraw, Q/E to pick which type.
+  withdraw, Q/E to pick which type; storage keeps maturity and returns the ripest first.
 - [ ] S015 Sprig loss recovery: a felled sprig outside the safe ring leaves a seed 30% of the
   time (deterministic by id); a sprig that carries it home replants it.
-- [ ] S016 Dismiss piles by type stay put; whistle a single pile by clicking near it.
+- [ ] S016 Enemy behaviour as data: `enemies.json` rows carry `first_state` and a `states`
+  map (events → transitions, `do` verbs from a closed vocabulary, seconds on the state);
+  `EnemySystem` becomes the interpreter; the Grub and Stalker are re-expressed as rows and the
+  content test rejects unknown events or verbs. Shape in `docs/research/pikifen-notes.md`.
 - [ ] S017 Spark sprigs: shrine in the field behind a dirt wall; ×4 dig; the first buried relic.
 - [ ] S018 Electric wire hazard: Spark walks it, others are shocked and flee; a wire gate.
 - [ ] S019 Tide sprigs: a pool with a shrine on the far side; drowning status, Tide rescue.
-- [ ] S020 Bridge: carry three planks to a gap; sprigs build; the navmesh grows.
+- [ ] S020 Bridge: a `task` object kind with power = Σ strength, a goal, and speed above the
+  goal; planks chipped from a pile carry to the gap and build it; the navmesh grows, with
+  path-link flags (light-load, airborne) for Moth-only and Tide-only routes.
 
 ## Arc 3 — Relics, the workshop, and gadgets
 
@@ -131,13 +140,26 @@ seconds of play.
 
 ## Arc 8 — Trials and the score
 
-- [ ] S071 Trials: timed collect-everything on a generated plot; score = weight + seconds left.
-- [ ] S072 Medals and a best-score line on the title.
-- [ ] S073 The daily trial: seeded by the date.
-- [ ] S074 Rival crews: a simulated crew on the split plot; sneak burrs and comeback rules.
-- [ ] S075 Battle trials: defeat everything on the plot.
-- [ ] S076 Boss trials.
-- [ ] S077 A leaderboard of his own bests by trial and by day.
+Model (from the Pikifen study): a trial is three lists, no goal enum. End conditions (each with
+`clear` true or false; failure is an end condition with clear=false), tracked groups (one
+declaration drives the counter, the minimap highlight, and the "all of them" target), and
+score criteria (metric × signed points, recomputed every tick; `on_hud=false` for the time
+bonus so it never ticks down in front of him). Medals: four thresholds, or clear/participation
+modes. Four HUD slots: goal, score, clock, misc. Numbers in `content/world.json` trial.
+
+- [ ] S071 `content/trials.json` + `sim/trial.gd`: the three lists, metrics (`seconds_left`,
+  `seconds_passed`, `group_cleared`, `group_health`, `sprigs_alive`, `sprigs_grown`,
+  `sprigs_lost`, `knight_downed`, `carried_weight`, `relic_value_banked`, `enemies_felled`,
+  `knight_in_ring`, `gates_opened`), live score, four HUD slots. First trial: Bramble Run
+  (bank every relic on a generated plot; harvest scoring, leftover time paid at the end).
+- [ ] S072 Medals by threshold, clear mode, participation mode; records keyed on trial id and
+  version; a best-score line on the title.
+- [ ] S073 The daily trial: the same row with the seed from the date.
+- [ ] S074 Rival crews: a simulated crew scored against the same criteria; one number to beat.
+- [ ] S075 Battle trials: `group_cleared(enemies) ≥ all`; Thorn Gauntlet (race scoring: start
+  high, elapsed subtracts).
+- [ ] S076 Boss trials: the same plus `seconds_left × N` so speed sets the medal.
+- [ ] S077 Lantern Watch: a hold trial (`group_health(lantern) > 0` through the clock).
 - [ ] S078 Trial rewards: cured Wardens, raw material for gadgets.
 - [ ] S079 Trial replays as ghosts.
 - [ ] S080 `[owner]` Third play session.

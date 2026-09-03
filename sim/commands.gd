@@ -8,6 +8,7 @@ var walk_target: Vector3 = Vector3.INF # INF = none
 var cursor: Vector3 = Vector3.INF # ground point under the mouse, INF when off the field
 var strike: bool = false
 var throw_pressed: bool = false
+var throw_held: bool = false
 var whistle_held: bool = false
 var swarm_held: bool = false
 var pluck_held: bool = false

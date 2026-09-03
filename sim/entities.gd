@@ -15,6 +15,9 @@ class Knight:
 	var swing_hit: bool = false
 	var walk_target: Vector3 = Vector3.INF
 	var since_hit: float = 99.0
+	var invuln: float = 0.0 # seconds of post-hit invulnerability left
+	var throw_held: float = -1.0 # <0 not held; seconds Space has been held (auto-throw ramp)
+	var throw_repeat: float = 0.0
 	var down_t: float = -1.0 # >=0 while defeated (blackout)
 	var selected_type: String = "ember"
 	var whistle_t: float = 0.0 # seconds the whistle has been held
@@ -95,6 +98,9 @@ class WorldObject:
 	var pellet_type: String = "" # pellets are tinted to a type; matching carriers double the yield
 	var shrine_type: String = "" # kind == shrine
 	var carriers: PackedInt32Array = []
+	## carrier spot slots around the load: index = spot, value = sprig id or -1. The ring is
+	## rotated so spot 0 faces the first claimant; each arrival takes the nearest free spot.
+	var slots: PackedInt32Array = []
 	var path: PackedVector3Array = []
 	var path_i: int = 0
 	var path_gen: int = -1
@@ -117,6 +123,7 @@ class Enemy:
 	var timer: float = 0.0
 	var cooldown: float = 0.0
 	var itch: float = 0.0
+	var itch_t: float = 99.0 # seconds since the last shake
 	var target_pos: Vector3 = Vector3.INF
 	var target_kind: String = "" # "knight" | "sprig" | "hold"
 	var target_id: int = -1

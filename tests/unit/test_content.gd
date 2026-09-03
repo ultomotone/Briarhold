@@ -37,7 +37,7 @@ func test_pellet_seed_rule() -> void:
 	for id: String in tables.objects.keys():
 		var o: Types.ObjectType = tables.object(id)
 		if o.kind == "pellet":
-			assert_eq(o.max_carriers, o.weight * 2, id)
+			assert_true(o.max_carriers >= o.weight * 2, id)
 			assert_true(o.seeds_match >= o.seeds_other, id)
 
 

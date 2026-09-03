@@ -223,6 +223,7 @@ func _physics_process(delta: float) -> void:
 	var dir: Vector3 = rig.forward() * f + rig.right() * r
 	cmd.move_dir = dir.normalized() if dir.length_squared() > 0.001 else Vector3.ZERO
 	cmd.whistle_held = Input.is_action_pressed("whistle") or _shot_whistle
+	cmd.throw_held = Input.is_action_pressed("throw")
 	cmd.swarm_held = Input.is_action_pressed("swarm")
 	cmd.pluck_held = Input.is_action_pressed("pluck")
 	cmd.cursor = cursor
@@ -259,12 +260,12 @@ func _process(delta: float) -> void:
 	fx.tick(delta)
 	# whistle ring and throw arc follow the cursor
 	var whistling: bool = mode == Mode.PLAY and cmd.whistle_held and k.down_t < 0.0
-	fx.whistle(cursor if cursor != Vector3.INF else kp, SquadSystem.whistle_radius(sim), whistling)
+	fx.whistle(SquadSystem.whistle_centre(sim, cmd), SquadSystem.whistle_radius(sim), whistling)
 	var can_throw: bool = mode == Mode.PLAY and cursor != Vector3.INF and sim.squad_count(k.selected_type) > 0 and k.down_t < 0.0
 	if can_throw:
 		var t: Types.SprigType = tables.sprig(k.selected_type)
 		var target: Vector3 = sim.ground(Throw.clamp_target(kp, cursor, t.throw_range))
-		var total: float = tables.wn("squad", "throw_flight_seconds", 0.62) * clampf(SimWorld.flat_dist(kp, target) / 5.0, 0.55, 1.15)
+		var total: float = SquadSystem.flight_time(sim, t)
 		fx.arc(Throw.arc_points(kp + Vector3(0.0, 1.0, 0.0), target, total, tables.wn("squad", "throw_gravity", 22.0)), true)
 	else:
 		fx.arc(PackedVector3Array(), false)

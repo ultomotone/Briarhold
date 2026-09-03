@@ -1,5 +1,31 @@
 # CHANGELOG — decisions with reasoning, newest first
 
+## 2026-09-02 — S000b: the Pikifen pass (owner-present session)
+
+**What changed.** Four read-only studies of Pikifen's source (MIT), re-derived at our scale and
+applied where cheap: the squad's ring layout now comes from body size (1, 3, 8, 12… per ring)
+with the selected type and blooms at the front; the formation anchor only moves when he moves
+or the squad strays (no more idle jitter); the swarm stretches along the cursor line; the
+whistle fills in 0.45 s, lands no farther than 8 m, and shortens any knockdown in its ring;
+throws pick the ripest sprig within grab range and fly to a fixed apex per type (`throw_height`),
+and holding Space keeps throwing at a ramping cadence; idle work is nearest-wins across enemies,
+loads, and gates; attackers give up past 8 m; dismiss lays hex piles per type on an arc from
+the squad's own centre with a 5 s work lock. Carrying uses the real curve (weight penalty,
+0.8 ceiling, 0.3 floor), the ring turns to face the first claimant and each arrival takes the
+nearest free spot, and ties in type go to the scarcer type. Seeds scatter on a golden angle
+from the seed count (no roll). Sprouts mature 120 / 120 / 180 s. Enemies need both itch damage
+and itch time to shake. A hit from behind an enemy does `back_multiplier`. Hazard statuses carry
+a speed multiplier, a leave-cures flag, and a disables-attack flag. The knight has a 0.9 s
+window after a real hit. The big pellet takes 50 carriers; relic value no longer tracks weight.
+
+**Why.** He asked whether the Pikifen repo would have streamlined this; it would have, and it
+did. Each number above replaced a guess with a value the reference engine ships and players
+have tuned against for years. The two structural ideas that were too big for one pass, enemy
+behaviour as data and the three-list trial model, went to the roadmap (S016, Arc 8) with their
+shapes written down, so the scheduled builder gets them as work orders, not as ideas.
+
+**Gate.** import · check · 64 tests · shots read. Notes: `docs/research/pikifen-notes.md`.
+
 ## 2026-09-02 — S000: the vertical slice and the doctrine (owner-present session)
 
 **What exists.** A Godot 4.7 project with a pure deterministic sim (`sim/`, 57 tests green), a

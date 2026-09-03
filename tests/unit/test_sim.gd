@@ -96,11 +96,16 @@ func test_whistle_recalls_and_dismiss_scatters() -> void:
 func test_carry_speed_curve() -> void:
 	var o := Entities.WorldObject.new()
 	o.max_carriers = 10
+	o.weight = 5
+	var pen: float = 1.0 - 0.01 * 5.0
 	var slow: float = CarrySystem.speed_for(tables, o, 5, 1.0)
 	var fast: float = CarrySystem.speed_for(tables, o, 10, 1.0)
-	assert_almost_eq(slow, 2.6 * 0.55, 0.001)
-	assert_almost_eq(fast, 2.6 * 0.8, 0.001)
+	assert_almost_eq(slow, 2.6 * 0.8 * pen * 0.65, 0.001)
+	assert_almost_eq(fast, 2.6 * 0.8 * pen, 0.001)
 	assert_almost_eq(CarrySystem.speed_for(tables, o, 10, 1.2), fast * 1.2, 0.001)
+	# heavier is slower, and never below a quarter
+	o.weight = 20
+	assert_lt(CarrySystem.speed_for(tables, o, 10, 1.0), fast)
 
 
 func test_pellet_carried_home_becomes_seeds() -> void:
@@ -283,6 +288,106 @@ func test_cap_stores_excess_seeds() -> void:
 	w.hold.cap += 100
 	_run(w, cmd, 2.0)
 	assert_eq(int(w.hold.stored.get("ember", 0)), 0)
+
+
+func test_carry_slots_face_first_claimant_and_fill_nearest() -> void:
+	var w := _world()
+	w.hold.cap = 100
+	var o: Entities.WorldObject = w.spawn_object("pellet_5", Vector3(0.0, 0.0, 14.0), "", "ember")
+	var a: Entities.Sprig = w.spawn_sprig("ember", o.pos + Vector3(0.0, 0.0, 3.0), Entities.Sprig.State.IDLE)
+	CarrySystem.join(w, a, o)
+	assert_eq(a.anchor, 0)
+	var spot0: Vector3 = CarrySystem.anchor_point(o, 0, o.max_carriers)
+	assert_lt(SimWorld.flat_dist(spot0, a.pos), SimWorld.flat_dist(o.pos, a.pos))
+	var b: Entities.Sprig = w.spawn_sprig("ember", o.pos + Vector3(0.0, 0.0, -3.0), Entities.Sprig.State.IDLE)
+	CarrySystem.join(w, b, o)
+	assert_ne(b.anchor, 0)
+	var spot_b: Vector3 = CarrySystem.anchor_point(o, b.anchor, o.max_carriers)
+	assert_lt(SimWorld.flat_dist(spot_b, b.pos), SimWorld.flat_dist(spot0, b.pos))
+	# whistling a away frees its slot without moving b
+	w.set_state(a, Entities.Sprig.State.FOLLOW)
+	assert_eq(o.slots[0], -1)
+	assert_eq(o.slots[b.anchor], b.id)
+
+
+func test_throw_apex_is_fixed_per_type() -> void:
+	var w := _world()
+	var t: Types.SprigType = tables.sprig("spark")
+	var total: float = SquadSystem.flight_time(w, t)
+	assert_almost_eq(Throw.peak_height(total, 22.0), t.throw_height, 0.001)
+	assert_gt(SquadSystem.flight_time(w, tables.sprig("spark")), SquadSystem.flight_time(w, tables.sprig("oak")))
+
+
+func test_throw_prefers_the_ripest() -> void:
+	var w := _world()
+	var cmd := Commands.new()
+	var leaf: Entities.Sprig = w.spawn_sprig("ember", w.knight.pos + Vector3(0.5, 0.0, 0.0), Entities.Sprig.State.FOLLOW, 0)
+	var bloom: Entities.Sprig = w.spawn_sprig("ember", w.knight.pos + Vector3(-2.0, 0.0, 0.0), Entities.Sprig.State.FOLLOW, 2)
+	w.knight.selected_type = "ember"
+	cmd.cursor = w.ground(w.knight.pos + Vector3(4.0, 0.0, 0.0))
+	cmd.throw_pressed = true
+	w.step(cmd, SimWorld.FIXED_DT)
+	assert_eq(bloom.state, Entities.Sprig.State.THROWN)
+	assert_eq(leaf.state, Entities.Sprig.State.FOLLOW)
+
+
+func test_held_throw_repeats() -> void:
+	var w := _world()
+	var cmd := Commands.new()
+	for i: int in 8:
+		w.spawn_sprig("ember", w.knight.pos + Vector3(0.5 + 0.2 * float(i), 0.0, 0.5), Entities.Sprig.State.FOLLOW)
+	w.knight.selected_type = "ember"
+	cmd.cursor = w.ground(w.knight.pos + Vector3(4.0, 0.0, 0.0))
+	cmd.throw_pressed = true
+	cmd.throw_held = true
+	w.step(cmd, SimWorld.FIXED_DT)
+	cmd.clear_pulses()
+	var thrown_after_first: int = 8 - w.squad_count()
+	assert_eq(thrown_after_first, 1)
+	_run(w, cmd, 2.0)
+	assert_gt(8 - w.squad_count(), 3)
+
+
+func test_shake_needs_time_as_well_as_damage() -> void:
+	var w := _world()
+	w.enemies.clear()
+	var e: Entities.Enemy = w.spawn_enemy("grub", Vector3(0.0, 0.0, 20.0))
+	e.state = Entities.Enemy.State.IDLE
+	e.itch_t = 0.0 # it just shook
+	w.knight.pos = Vector3(0.0, 0.0, -30.0)
+	Damage.to_enemy(w, e, 500.0, "test", e.pos)
+	var cmd := Commands.new()
+	w.step(cmd, SimWorld.FIXED_DT)
+	assert_ne(e.state, Entities.Enemy.State.SHAKE)
+	_run(w, cmd, 4.2)
+	assert_eq(e.state, Entities.Enemy.State.SHAKE)
+
+
+func test_maturity_stages_are_uneven() -> void:
+	assert_eq(HoldSystem.maturity_for(tables, 119.0), 0)
+	assert_eq(HoldSystem.maturity_for(tables, 121.0), 1)
+	assert_eq(HoldSystem.maturity_for(tables, 239.0), 1)
+	assert_eq(HoldSystem.maturity_for(tables, 241.0), 2)
+
+
+func test_dismiss_lays_piles_by_type() -> void:
+	var w := _world()
+	var cmd := Commands.new()
+	for i: int in 7:
+		w.spawn_sprig("ember", w.knight.pos + Vector3(0.3 * float(i), 0.0, 0.5), Entities.Sprig.State.FOLLOW)
+	for i: int in 3:
+		w.spawn_sprig("stone", w.knight.pos + Vector3(-0.3 * float(i), 0.0, 0.5), Entities.Sprig.State.FOLLOW)
+	cmd.dismiss_pressed = true
+	_run(w, cmd, 3.0)
+	var ember_c := Vector3.ZERO
+	var stone_c := Vector3.ZERO
+	for s: Entities.Sprig in w.sprigs:
+		if s.type_id == "ember":
+			ember_c += s.pos / 7.0
+		else:
+			stone_c += s.pos / 3.0
+	assert_gt(SimWorld.flat_dist(ember_c, stone_c), 1.0)
+	assert_eq(w.squad_count(), 0)
 
 
 func test_no_engine_randomness_in_sim() -> void:

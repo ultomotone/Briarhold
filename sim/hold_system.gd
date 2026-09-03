@@ -26,7 +26,6 @@ static func step(w: SimWorld, dt: float) -> void:
 				break
 			h.store(t)
 			h.seeds_grown += 1
-	var stage: float = c.wn("sprout", "stage_seconds", 120.0)
 	for sp: Entities.Sprout in w.sprouts:
 		if sp.fl_t >= 0.0:
 			sp.fl_t += dt
@@ -35,10 +34,22 @@ static func step(w: SimWorld, dt: float) -> void:
 				w.events.push("rooted", {"pos": sp.pos, "type": sp.type_id})
 			continue
 		sp.age += dt
-		var m: int = mini(2, int(sp.age / stage))
+		var m: int = maturity_for(c, sp.age)
 		if m != sp.maturity:
 			sp.maturity = m
 			w.events.push("matured", {"pos": sp.pos, "type": sp.type_id, "maturity": m})
+
+
+## Leaf, then bud after stage 1, bloom after stage 1 + stage 2. The third stage is longer on
+## purpose: the bloom is earned.
+static func maturity_for(c: ContentTables, age: float) -> int:
+	var s1: float = c.wn("sprout", "stage_seconds_1", 120.0)
+	var s2: float = c.wn("sprout", "stage_seconds_2", 120.0)
+	if age >= s1 + s2:
+		return 2
+	if age >= s1:
+		return 1
+	return 0
 
 
 static func _plant(w: SimWorld, type_id: String) -> void:
@@ -48,10 +59,12 @@ static func _plant(w: SimWorld, type_id: String) -> void:
 		h.store(type_id)
 		h.seeds_grown += 1
 		return
-	var r := Rng.stream("%s:seed:%d:%d" % [w.seed_str(), w.tick, w.next_id])
+	# no roll: the seed count walks a golden angle, and the distance cycles, so seeds spread
+	# evenly and the same Hold always sows the same patch
+	var n: int = h.seeds_grown
 	var scatter: float = w.content.wn("sprout", "seed_scatter_radius", 3.5)
-	var ang: float = r.randf() * TAU
-	var dist: float = 1.2 + sqrt(r.randf()) * scatter
+	var ang: float = float(n) * TAU * 0.12345
+	var dist: float = 1.2 + sqrt(fmod(float(n) * 0.618034, 1.0)) * scatter
 	var p: Vector3 = sh.pos + Vector3(sin(ang), 0.0, cos(ang)) * dist
 	p = w.push_out(p, 0.2)
 	w.spawn_sprout(type_id, p, sh.pos + Vector3(0.0, 2.2, 0.0))
@@ -65,13 +78,12 @@ static func apply_offline(w: SimWorld, elapsed: float) -> Dictionary:
 	var c: ContentTables = w.content
 	var nights: int = w.clock.advance_offline(elapsed, c.wi("offline_cap_days", 7))
 	var capped: float = minf(elapsed, float(c.wi("offline_cap_days", 7)) * w.clock.cycle())
-	var stage: float = c.wn("sprout", "stage_seconds", 120.0)
 	var matured: int = 0
 	for sp: Entities.Sprout in w.sprouts:
 		if sp.fl_t >= 0.0:
 			sp.fl_t = -1.0
 		sp.age += capped
-		var m: int = mini(2, int(sp.age / stage))
+		var m: int = maturity_for(c, sp.age)
 		if m > sp.maturity:
 			matured += 1
 		sp.maturity = m

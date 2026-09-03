@@ -4,6 +4,16 @@ class_name Damage
 extends RefCounted
 
 
+## Damage from behind an enemy is scaled by its back_multiplier; from the front, 1.0.
+static func facing_mult(e: Entities.Enemy, et: Types.EnemyType, from: Vector3) -> float:
+	var fwd := Vector3(sin(e.yaw), 0.0, cos(e.yaw))
+	var d: Vector3 = from - e.pos
+	d.y = 0.0
+	if d.length() < 0.01:
+		return 1.0
+	return et.back_multiplier if fwd.dot(d.normalized()) < -0.3 else 1.0
+
+
 static func to_enemy(w: SimWorld, e: Entities.Enemy, amount: float, cause: String, at: Vector3) -> float:
 	if e.state == Entities.Enemy.State.DEAD:
 		return 0.0
@@ -22,6 +32,11 @@ static func to_knight(w: SimWorld, amount: float, cause: String) -> float:
 	var k: Entities.Knight = w.knight
 	if k.down_t >= 0.0:
 		return 0.0
+	# a landed hit buys him a short window; steady hazard damage (small amounts) does not
+	if amount >= 5.0:
+		if k.invuln > 0.0:
+			return 0.0
+		k.invuln = w.content.wn("knight", "invuln_seconds", 0.9)
 	var dealt: float = minf(amount, k.hp)
 	k.hp -= dealt
 	k.since_hit = 0.0

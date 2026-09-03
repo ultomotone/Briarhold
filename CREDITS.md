@@ -14,4 +14,7 @@ Every asset that enters this repo gets a line: name, author, source URL, licence
 ## Design references (structure studied, content never copied)
 
 - Pikipedia — https://www.pikminwiki.com — mechanics reference for the genre.
-- Pikifen — Espyo — https://github.com/Espyo/Pikifen — data model reference (MIT; nothing copied).
+- Pikifen — Espyo — https://github.com/Espyo/Pikifen — MIT. Studied in source for the squad
+  formation formula, carry speed curve and spot claiming, the two-gate shake, hazard status
+  fields, the seed-spiral idea, and the mission model. Re-derived at our scale in GDScript;
+  no code copied. Notes: `docs/research/pikifen-notes.md`.

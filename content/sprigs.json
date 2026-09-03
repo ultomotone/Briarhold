@@ -1,14 +1,171 @@
 {
-  "_doc": "Sprig types. Names decode on sight (interface naming law). attack: latch = hang on and slap; impact = hit once on landing, never latch. immune: hazard ids from hazards.json. strength: carry contribution. damage: per slap. lag_bias: extra follow lag so types read differently in a crowd.",
+  "_doc": "Sprig types. Names decode on sight (interface naming law). attack: latch = hang on and slap; impact = hit once on landing, never latch. immune: hazard ids from hazards.json. strength: carry contribution. damage: per slap. lag_bias: extra follow lag so types read differently in a crowd. throw_height: the arc's apex above the launch point; flight time follows from it, so a throw over the same wall always clears it.",
   "types": [
-    { "id": "ember", "name": "Ember", "colour_key": "sprig_ember", "speed": 4.6, "strength": 1, "throw_range": 7.0, "damage": 15.0, "attack": "latch", "immune": ["fire"], "lag_bias": 0.0, "dig_mult": 1.0, "can_fly": false, "line": "Walks through fire. Hits harder than the rest." },
-    { "id": "stone", "name": "Stone", "colour_key": "sprig_stone", "speed": 4.1, "strength": 1, "throw_range": 6.0, "damage": 40.0, "attack": "impact", "immune": ["crush", "stab"], "lag_bias": 0.08, "dig_mult": 0.8, "can_fly": false, "line": "Cannot be crushed. Breaks crystal. Hits once on landing, never hangs on." },
-    { "id": "spark", "name": "Spark", "colour_key": "sprig_spark", "speed": 4.6, "strength": 1, "throw_range": 9.5, "damage": 10.0, "attack": "latch", "immune": ["shock"], "lag_bias": -0.03, "dig_mult": 4.0, "can_fly": false, "line": "Thrown highest. Digs fastest. Carries a charge." },
-    { "id": "tide", "name": "Tide", "colour_key": "sprig_tide", "speed": 4.6, "strength": 1, "throw_range": 7.0, "damage": 10.0, "attack": "latch", "immune": ["water"], "lag_bias": 0.0, "dig_mult": 1.0, "can_fly": false, "line": "Walks under water. Pulls the drowning out." },
-    { "id": "thorn", "name": "Thorn", "colour_key": "sprig_thorn", "speed": 6.4, "strength": 1, "throw_range": 7.0, "damage": 5.0, "attack": "latch", "immune": ["poison"], "lag_bias": -0.08, "dig_mult": 1.2, "can_fly": false, "line": "Fastest on its feet. Poisons what eats it." },
-    { "id": "moth", "name": "Moth", "colour_key": "sprig_moth", "speed": 4.8, "strength": 1, "throw_range": 7.5, "damage": 5.0, "attack": "latch", "immune": ["crush", "pit"], "lag_bias": 0.05, "dig_mult": 0.5, "can_fly": true, "line": "Flies over water and walls. Lifts what hangs." },
-    { "id": "frost", "name": "Frost", "colour_key": "sprig_frost", "speed": 4.4, "strength": 1, "throw_range": 7.0, "damage": 5.0, "attack": "latch", "immune": ["freeze"], "lag_bias": 0.02, "dig_mult": 1.0, "can_fly": false, "line": "Fills a freeze ring. Frozen things shatter or thaw to nectar." },
-    { "id": "oak", "name": "Oak", "colour_key": "sprig_oak", "speed": 3.2, "strength": 10, "throw_range": 5.0, "damage": 15.0, "attack": "latch", "immune": [], "lag_bias": 0.14, "dig_mult": 0.7, "can_fly": false, "line": "Ten sprigs' strength. Slow. Lands like a dropped stone." },
-    { "id": "wisp", "name": "Wisp", "colour_key": "sprig_wisp", "speed": 5.0, "strength": 1, "throw_range": 7.0, "damage": 10.0, "attack": "latch", "immune": ["fire", "shock", "water", "poison", "freeze"], "lag_bias": -0.05, "dig_mult": 1.0, "can_fly": false, "line": "Night only. Nothing on the ground can touch it. Gone at dawn." }
+    {
+      "id": "ember",
+      "name": "Ember",
+      "colour_key": "sprig_ember",
+      "speed": 4.6,
+      "strength": 1,
+      "throw_range": 7.0,
+      "damage": 15.0,
+      "attack": "latch",
+      "immune": [
+        "fire"
+      ],
+      "lag_bias": 0.0,
+      "dig_mult": 1.0,
+      "can_fly": false,
+      "line": "Walks through fire. Hits harder than the rest.",
+      "throw_height": 1.5
+    },
+    {
+      "id": "stone",
+      "name": "Stone",
+      "colour_key": "sprig_stone",
+      "speed": 4.1,
+      "strength": 1,
+      "throw_range": 6.0,
+      "damage": 40.0,
+      "attack": "impact",
+      "immune": [
+        "crush",
+        "stab"
+      ],
+      "lag_bias": 0.08,
+      "dig_mult": 0.8,
+      "can_fly": false,
+      "line": "Cannot be crushed. Breaks crystal. Hits once on landing, never hangs on.",
+      "throw_height": 1.3
+    },
+    {
+      "id": "spark",
+      "name": "Spark",
+      "colour_key": "sprig_spark",
+      "speed": 4.6,
+      "strength": 1,
+      "throw_range": 9.5,
+      "damage": 10.0,
+      "attack": "latch",
+      "immune": [
+        "shock"
+      ],
+      "lag_bias": -0.03,
+      "dig_mult": 4.0,
+      "can_fly": false,
+      "line": "Thrown highest. Digs fastest. Carries a charge.",
+      "throw_height": 2.4
+    },
+    {
+      "id": "tide",
+      "name": "Tide",
+      "colour_key": "sprig_tide",
+      "speed": 4.6,
+      "strength": 1,
+      "throw_range": 7.0,
+      "damage": 10.0,
+      "attack": "latch",
+      "immune": [
+        "water"
+      ],
+      "lag_bias": 0.0,
+      "dig_mult": 1.0,
+      "can_fly": false,
+      "line": "Walks under water. Pulls the drowning out.",
+      "throw_height": 1.5
+    },
+    {
+      "id": "thorn",
+      "name": "Thorn",
+      "colour_key": "sprig_thorn",
+      "speed": 6.4,
+      "strength": 1,
+      "throw_range": 7.0,
+      "damage": 5.0,
+      "attack": "latch",
+      "immune": [
+        "poison"
+      ],
+      "lag_bias": -0.08,
+      "dig_mult": 1.2,
+      "can_fly": false,
+      "line": "Fastest on its feet. Poisons what eats it.",
+      "throw_height": 1.5
+    },
+    {
+      "id": "moth",
+      "name": "Moth",
+      "colour_key": "sprig_moth",
+      "speed": 4.8,
+      "strength": 1,
+      "throw_range": 7.5,
+      "damage": 5.0,
+      "attack": "latch",
+      "immune": [
+        "crush",
+        "pit"
+      ],
+      "lag_bias": 0.05,
+      "dig_mult": 0.5,
+      "can_fly": true,
+      "line": "Flies over water and walls. Lifts what hangs.",
+      "throw_height": 1.8
+    },
+    {
+      "id": "frost",
+      "name": "Frost",
+      "colour_key": "sprig_frost",
+      "speed": 4.4,
+      "strength": 1,
+      "throw_range": 7.0,
+      "damage": 5.0,
+      "attack": "latch",
+      "immune": [
+        "freeze"
+      ],
+      "lag_bias": 0.02,
+      "dig_mult": 1.0,
+      "can_fly": false,
+      "line": "Fills a freeze ring. Frozen things shatter or thaw to nectar.",
+      "throw_height": 1.5
+    },
+    {
+      "id": "oak",
+      "name": "Oak",
+      "colour_key": "sprig_oak",
+      "speed": 3.2,
+      "strength": 10,
+      "throw_range": 5.0,
+      "damage": 15.0,
+      "attack": "latch",
+      "immune": [],
+      "lag_bias": 0.14,
+      "dig_mult": 0.7,
+      "can_fly": false,
+      "line": "Ten sprigs' strength. Slow. Lands like a dropped stone.",
+      "throw_height": 1.0
+    },
+    {
+      "id": "wisp",
+      "name": "Wisp",
+      "colour_key": "sprig_wisp",
+      "speed": 5.0,
+      "strength": 1,
+      "throw_range": 7.0,
+      "damage": 10.0,
+      "attack": "latch",
+      "immune": [
+        "fire",
+        "shock",
+        "water",
+        "poison",
+        "freeze"
+      ],
+      "lag_bias": -0.05,
+      "dig_mult": 1.0,
+      "can_fly": false,
+      "line": "Night only. Nothing on the ground can touch it. Gone at dawn.",
+      "throw_height": 1.5
+    }
   ]
 }

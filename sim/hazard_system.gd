@@ -42,6 +42,18 @@ static func step(w: SimWorld, dt: float) -> void:
 		if hz == null:
 			s.status = ""
 			continue
+		if hz.hazard_leave_cures and not _inside_hazard(w, s.pos, s.hazard_id):
+			s.status = ""
+			s.status_t = 0.0
+			s.hazard_id = ""
+			continue
 		s.status_t += dt
 		if hz.kill_after > 0.0 and s.status_t >= hz.kill_after:
 			w.kill_sprig(s, hz.name.to_lower())
+
+
+static func _inside_hazard(w: SimWorld, p: Vector3, hazard_id: String) -> bool:
+	for z: Entities.HazardZone in w.hazards:
+		if z.hazard_id == hazard_id and SimWorld.flat_dist(p, z.pos) <= z.radius:
+			return true
+	return false

@@ -49,6 +49,7 @@ static func step(w: SimWorld, cmd: Commands, dt: float) -> void:
 			k.swing_t = -1.0
 
 	k.since_hit += dt
+	k.invuln = maxf(0.0, k.invuln - dt)
 	if k.since_hit > c.wn("knight", "regen_after", 5.0) and k.hp < k.max_hp:
 		k.hp = minf(k.max_hp, k.hp + c.wn("knight", "regen_per_sec", 3.4) * dt)
 

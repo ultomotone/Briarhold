@@ -1,5 +1,5 @@
 {
-  "_doc": "World-shape and rule numbers. Units: the knight is 1.0 tall; the field is size x size centred on the Hold at the origin. Times in seconds of real play.",
+  "_doc": "World-shape and rule numbers. Units: the knight is 1.0 tall; the field is size x size centred on the Hold at the origin. Times in seconds of real play. Squad, carry, and sprout numbers follow Pikifen's shipped config at our scale (1 m ~ 24 Pikifen px); see docs/research/pikifen-notes.md.",
   "size": 160.0,
   "bound": 74.0,
   "hold_radius": 9.0,
@@ -14,7 +14,7 @@
   "offline_cap_days": 7,
   "knight": {
     "hp": 100.0,
-    "speed": 5.2,
+    "speed": 5.6,
     "sword_damage": 12.0,
     "swing_seconds": 0.44,
     "contact_at": 0.17,
@@ -22,13 +22,11 @@
     "arc_rad": 0.9,
     "backstrike_mult": 1.55,
     "regen_after": 5.0,
-    "regen_per_sec": 3.4
+    "regen_per_sec": 3.4,
+    "invuln_seconds": 0.9
   },
   "squad": {
-    "follow_ring_base": 1.1,
-    "follow_ring_step": 0.55,
-    "follow_per_ring": 7,
-    "whistle_grow_seconds": 1.8,
+    "whistle_grow_seconds": 0.45,
     "whistle_max_radius": 6.0,
     "whistle_min_radius": 1.2,
     "idle_task_radius": 3.0,
@@ -36,21 +34,48 @@
     "throw_flight_seconds": 0.62,
     "throw_gravity": 22.0,
     "pluck_radius": 1.6,
-    "pluck_seek_radius": 5.0,
+    "pluck_seek_radius": 8.0,
     "swarm_speed_mult": 1.15,
     "charge_speed_mult": 1.6,
-    "separation_radius": 0.42
+    "separation_radius": 0.42,
+    "whistle_reach": 8.0,
+    "throw_grab_radius": 5.4,
+    "throw_repeat_start": 0.5,
+    "throw_repeat_min": 0.18,
+    "throw_repeat_ramp": 1.0,
+    "chase_range": 8.0,
+    "follow_deadband": 1.7,
+    "dismiss_arc_distance": 2.0,
+    "dismiss_row_spacing": 0.32,
+    "follow_ring_gap": 0.16
   },
   "carry": {
     "speed_min_mult": 0.3,
     "speed_max_mult": 0.8,
-    "base_speed": 2.6
+    "base_speed": 2.6,
+    "speed_weight_mult": 0.01
   },
   "sprout": {
-    "stage_seconds": 120.0,
     "bud_speed_mult": 1.1,
     "bloom_speed_mult": 1.2,
     "seed_flight_seconds": 0.9,
-    "seed_scatter_radius": 3.5
+    "seed_scatter_radius": 3.5,
+    "stage_seconds_1": 120.0,
+    "stage_seconds_2": 120.0,
+    "stage_seconds_3": 180.0
+  },
+  "trial": {
+    "plot_radius": 46.0,
+    "default_time_limit": 300.0,
+    "medal_default": {
+      "bronze": 400,
+      "silver": 750,
+      "gold": 1100,
+      "platinum": 1500
+    },
+    "seconds_left_points": 4,
+    "sprig_loss_points": -5,
+    "carried_weight_points": 1,
+    "relic_value_points": 1
   }
 }

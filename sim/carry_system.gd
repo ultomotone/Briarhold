@@ -1,6 +1,9 @@
 ## Carrying: a load has a weight and a carrier limit; it moves once the carriers' strength meets
 ## the weight, faster with more hands, along a path the PathProvider gives, and delivers at the
-## Hold. speed = base * lerp(min, max, carriers / max_carriers).
+## Hold. Carrier spots ring the load; the ring turns to face the first claimant and each arrival
+## takes the nearest free spot, so a whistled-off carrier never reshuffles the rest.
+##
+## speed = base * max_mult * (1 - weight_mult * weight) * (min_mult + fill * (1 - min_mult))
 class_name CarrySystem
 extends RefCounted
 
@@ -15,17 +18,43 @@ static func join(w: SimWorld, s: Entities.Sprig, o: Entities.WorldObject) -> voi
 		j.id = w.new_id()
 		j.object_id = o.id
 		w.jobs.append(j)
+	if o.slots.size() != o.max_carriers:
+		o.slots.resize(o.max_carriers)
+		o.slots.fill(-1)
+	if o.carriers.is_empty():
+		# the first claimant sets the ring: spot 0 faces it
+		o.yaw = SimWorld.yaw_toward(o.pos, s.pos, o.yaw)
+	var slot: int = _nearest_free_slot(o, s.pos)
+	if slot < 0:
+		w.set_state(s, Entities.Sprig.State.IDLE)
+		return
 	w.set_state(s, Entities.Sprig.State.CARRY)
 	s.job_id = j.id
-	s.anchor = o.carriers.size()
+	s.anchor = slot
+	o.slots[slot] = s.id
 	o.carriers.append(s.id)
 	j.carriers = o.carriers
 
 
+static func _nearest_free_slot(o: Entities.WorldObject, from: Vector3) -> int:
+	var best: int = -1
+	var best_d: float = 1e9
+	for i: int in o.slots.size():
+		if o.slots[i] != -1:
+			continue
+		var d: float = SimWorld.flat_dist(from, anchor_point(o, i, o.max_carriers))
+		if d < best_d:
+			best_d = d
+			best = i
+	return best
+
+
 static func speed_for(c: ContentTables, o: Entities.WorldObject, on_count: int, mat_avg: float) -> float:
 	var fill: float = clampf(float(on_count) / float(maxi(1, o.max_carriers)), 0.0, 1.0)
-	var m: float = lerpf(c.wn("carry", "speed_min_mult", 0.3), c.wn("carry", "speed_max_mult", 0.8), fill)
-	return c.wn("carry", "base_speed", 2.6) * m * mat_avg
+	var lo: float = c.wn("carry", "speed_min_mult", 0.3)
+	var hi: float = c.wn("carry", "speed_max_mult", 0.8)
+	var weight_pen: float = clampf(1.0 - c.wn("carry", "speed_weight_mult", 0.01) * float(o.weight), 0.25, 1.0)
+	return c.wn("carry", "base_speed", 2.6) * hi * weight_pen * (lo + fill * (1.0 - lo)) * mat_avg
 
 
 static func anchor_point(o: Entities.WorldObject, anchor: int, total: int) -> Vector3:
@@ -50,31 +79,25 @@ static func step(w: SimWorld, dt: float) -> void:
 		if o == null:
 			continue
 		j.carriers = o.carriers
-		# carriers walk to their anchors; only the ones on an anchor lift
+		# carriers walk to their spots; only the ones on a spot lift
 		var strength: int = 0
 		var on_count: int = 0
 		var mat_sum: float = 0.0
-		var total: int = o.carriers.size()
-		var idx: int = 0
 		for sid: int in o.carriers:
 			var s: Entities.Sprig = w.sprig_by_id(sid)
 			if s == null:
-				idx += 1
 				continue
-			s.anchor = idx
-			var t: Types.SprigType = w.sprig_type(s)
-			var a: Vector3 = anchor_point(o, idx, total)
+			var a: Vector3 = anchor_point(o, s.anchor, o.max_carriers)
 			var d: float = SimWorld.flat_dist(s.pos, a)
 			if d > 0.35 and not j.moving:
 				s.yaw = SimWorld.yaw_toward(s.pos, a, s.yaw)
-				s.pos = w.step_toward(s.pos, a, t.speed * w.maturity_mult(s), dt, 0.15)
+				s.pos = w.step_toward(s.pos, a, SquadSystem.move_speed(w, s), dt, 0.15)
 			else:
 				s.pos = w.ground(a)
 				s.yaw = SimWorld.yaw_toward(s.pos, o.pos, s.yaw)
-				strength += t.strength
+				strength += w.sprig_type(s).strength
 				on_count += 1
 				mat_sum += w.maturity_mult(s)
-			idx += 1
 		if on_count == 0:
 			j.moving = false
 			continue
@@ -95,12 +118,15 @@ static func step(w: SimWorld, dt: float) -> void:
 		to.y = 0.0
 		var len: float = to.length()
 		var m: float = speed * dt
+		var heading: float = o.yaw
 		if len <= m:
 			o.pos = w.ground(wp)
 			o.path_i += 1
 		else:
 			o.pos = w.ground(o.pos + to * (m / len))
-			o.yaw = SimWorld.yaw_toward(Vector3.ZERO, to, o.yaw)
+			heading = SimWorld.yaw_toward(Vector3.ZERO, to, o.yaw)
+		# the ring turns with the heading, so the front carriers stay in front
+		o.yaw = lerp_angle(o.yaw, heading, clampf(dt * 3.0, 0.0, 1.0))
 		if o.kind != "shrine" and w.hold.in_hold(o.pos) and SimWorld.flat_dist(o.pos, w.hold.pos) < w.hold.radius * 0.45:
 			_deliver(w, j, o)
 
@@ -111,12 +137,17 @@ static func majority_type(w: SimWorld, o: Entities.WorldObject) -> String:
 		var s: Entities.Sprig = w.sprig_by_id(sid)
 		if s != null:
 			counts[s.type_id] = int(counts.get(s.type_id, 0)) + 1
+	# ties go to the type with the smaller population: the scarce type grows
+	var census: Dictionary = w.census()
 	var best: String = ""
 	var best_n: int = -1
+	var best_pop: int = 1 << 30
 	for id: String in w.content.sprig_order:
 		var n: int = int(counts.get(id, 0))
-		if n > best_n:
+		var pop: int = int(census.get(id, 0))
+		if n > best_n or (n == best_n and n > 0 and pop < best_pop):
 			best_n = n
+			best_pop = pop
 			best = id
 	return best
 

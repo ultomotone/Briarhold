@@ -28,6 +28,9 @@ var plants: Array[Dictionary] = [] # view-only scatter {"pos", "s", "kind"}
 var hash: SpatialHash
 var next_id: int = 1
 var deltas: Dictionary = {"taken": PackedStringArray(), "felled": PackedStringArray(), "opened": PackedStringArray(), "rooted": PackedStringArray()}
+## The squad's formation anchor (SquadSystem): trails him, settles when he stops.
+var anchor: Vector3 = Vector3.INF
+var anchor_yaw: float = 0.0
 var lost_tonight: int = 0
 var lost_total: int = 0
 var last_night_report: Dictionary = {}
@@ -267,6 +270,9 @@ func _detach(s: Entities.Sprig) -> void:
 				var oi: int = o.carriers.find(s.id)
 				if oi >= 0:
 					o.carriers.remove_at(oi)
+				var si: int = o.slots.find(s.id)
+				if si >= 0:
+					o.slots[si] = -1
 		s.job_id = -1
 	s.enemy_id = -1
 	s.gate_id = -1

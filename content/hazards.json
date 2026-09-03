@@ -1,13 +1,109 @@
 {
-  "_doc": "Hazards apply a status to any sprig not immune (sprigs.json immune lists reference these ids). A status with kill_after > 0 kills the sprig after that many seconds unless whistled; whistle_cures says the whistle clears it. The knight takes knight_damage_per_sec while standing in it.",
+  "_doc": "Hazards apply a status to any sprig not immune (sprigs.json immune lists reference these ids). A status with kill_after > 0 kills the sprig after that many seconds unless whistled; whistle_cures says the whistle clears it. The knight takes knight_damage_per_sec while standing in it. speed_mult: the status's effect on the sprig's speed (panic runs at 2x, drowning at 0.2x). hazard_leave_cures: leaving the zone clears it (water), as opposed to only the whistle (fire).",
   "hazards": [
-    { "id": "fire", "name": "Fire", "status": "burning", "kill_after": 6.0, "whistle_cures": true, "flee": true, "knight_damage_per_sec": 8.0, "colour_key": "vent_fire" },
-    { "id": "water", "name": "Water", "status": "drowning", "kill_after": 5.0, "whistle_cures": true, "flee": false, "knight_damage_per_sec": 0.0, "colour_key": "sprig_tide" },
-    { "id": "shock", "name": "Shock", "status": "shocked", "kill_after": 0.0, "whistle_cures": true, "flee": true, "knight_damage_per_sec": 12.0, "colour_key": "sprig_spark" },
-    { "id": "poison", "name": "Poison", "status": "poisoned", "kill_after": 6.0, "whistle_cures": true, "flee": true, "knight_damage_per_sec": 4.0, "colour_key": "sprig_thorn" },
-    { "id": "freeze", "name": "Freeze", "status": "frozen", "kill_after": 8.0, "whistle_cures": true, "flee": false, "knight_damage_per_sec": 2.0, "colour_key": "sprig_frost" },
-    { "id": "crush", "name": "Crush", "status": "", "kill_after": -1.0, "whistle_cures": false, "flee": false, "knight_damage_per_sec": 0.0, "colour_key": "scatter_stone" },
-    { "id": "stab", "name": "Stab", "status": "", "kill_after": -1.0, "whistle_cures": false, "flee": false, "knight_damage_per_sec": 0.0, "colour_key": "scatter_stone" },
-    { "id": "pit", "name": "Pit", "status": "", "kill_after": -1.0, "whistle_cures": false, "flee": false, "knight_damage_per_sec": 0.0, "colour_key": "scatter_stone" }
+    {
+      "id": "fire",
+      "name": "Fire",
+      "status": "burning",
+      "kill_after": 6.0,
+      "whistle_cures": true,
+      "flee": true,
+      "knight_damage_per_sec": 8.0,
+      "colour_key": "vent_fire",
+      "speed_mult": 2.0,
+      "hazard_leave_cures": false,
+      "disables_attack": false
+    },
+    {
+      "id": "water",
+      "name": "Water",
+      "status": "drowning",
+      "kill_after": 5.0,
+      "whistle_cures": true,
+      "flee": false,
+      "knight_damage_per_sec": 0.0,
+      "colour_key": "sprig_tide",
+      "speed_mult": 0.2,
+      "hazard_leave_cures": true,
+      "disables_attack": true
+    },
+    {
+      "id": "shock",
+      "name": "Shock",
+      "status": "shocked",
+      "kill_after": 0.0,
+      "whistle_cures": true,
+      "flee": true,
+      "knight_damage_per_sec": 12.0,
+      "colour_key": "sprig_spark",
+      "speed_mult": 0.0,
+      "hazard_leave_cures": false,
+      "disables_attack": true
+    },
+    {
+      "id": "poison",
+      "name": "Poison",
+      "status": "poisoned",
+      "kill_after": 6.0,
+      "whistle_cures": true,
+      "flee": true,
+      "knight_damage_per_sec": 4.0,
+      "colour_key": "sprig_thorn",
+      "speed_mult": 2.0,
+      "hazard_leave_cures": false,
+      "disables_attack": false
+    },
+    {
+      "id": "freeze",
+      "name": "Freeze",
+      "status": "frozen",
+      "kill_after": 8.0,
+      "whistle_cures": true,
+      "flee": false,
+      "knight_damage_per_sec": 2.0,
+      "colour_key": "sprig_frost",
+      "speed_mult": 0.0,
+      "hazard_leave_cures": false,
+      "disables_attack": true
+    },
+    {
+      "id": "crush",
+      "name": "Crush",
+      "status": "",
+      "kill_after": -1.0,
+      "whistle_cures": false,
+      "flee": false,
+      "knight_damage_per_sec": 0.0,
+      "colour_key": "scatter_stone",
+      "speed_mult": 1.0,
+      "hazard_leave_cures": false,
+      "disables_attack": false
+    },
+    {
+      "id": "stab",
+      "name": "Stab",
+      "status": "",
+      "kill_after": -1.0,
+      "whistle_cures": false,
+      "flee": false,
+      "knight_damage_per_sec": 0.0,
+      "colour_key": "scatter_stone",
+      "speed_mult": 1.0,
+      "hazard_leave_cures": false,
+      "disables_attack": false
+    },
+    {
+      "id": "pit",
+      "name": "Pit",
+      "status": "",
+      "kill_after": -1.0,
+      "whistle_cures": false,
+      "flee": false,
+      "knight_damage_per_sec": 0.0,
+      "colour_key": "scatter_stone",
+      "speed_mult": 1.0,
+      "hazard_leave_cures": false,
+      "disables_attack": false
+    }
   ]
 }
