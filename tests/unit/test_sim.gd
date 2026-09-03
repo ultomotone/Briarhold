@@ -410,6 +410,23 @@ func test_hold_f_at_a_shrine_withdraws_stored() -> void:
 	assert_eq(int(w.hold.stored.get("ember", 0)), 2)
 
 
+func test_hold_g_at_a_shrine_sends_sprigs_inside() -> void:
+	var w := _world()
+	var sh: Entities.Shrine = w.shrines[0]
+	w.knight.pos = sh.pos + Vector3(2.0, 0.0, 0.0)
+	for i: int in 5:
+		w.spawn_sprig("ember", w.knight.pos + Vector3(0.3 * float(i), 0.0, 0.5), Entities.Sprig.State.FOLLOW)
+	var stone: Entities.Sprig = w.spawn_sprig("stone", w.knight.pos + Vector3(0.0, 0.0, -0.5), Entities.Sprig.State.FOLLOW)
+	var lost0: int = w.lost_total
+	var cmd := Commands.new()
+	cmd.store_held = true
+	_run(w, cmd, 1.2)
+	assert_eq(int(w.hold.stored.get("ember", 0)), 5)
+	assert_eq(w.squad_count("ember"), 0)
+	assert_eq(stone.state, Entities.Sprig.State.FOLLOW) # no Stone shrine here: it stays with him
+	assert_eq(w.lost_total, lost0) # inside is not lost
+
+
 func test_no_engine_randomness_in_sim() -> void:
 	# the discipline, enforced: no randi/randf/randomize/RandomNumberGenerator in sim/
 	var d := DirAccess.open("res://sim")

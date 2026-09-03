@@ -57,6 +57,7 @@ func build(p: PaletteData, m: Main) -> void:
 		"Shift (hold)   swarm the squad toward the cursor",
 		"Q / E   select sprig type",
 		"F (hold)   pluck sprouts; beside a shrine, take sprigs from inside it",
+		"G (hold)   beside a shrine, send the squad of its type inside (safe for the night)",
 		"Z / V   turn the camera · wheel zooms",
 		"Esc   this menu",
 	]

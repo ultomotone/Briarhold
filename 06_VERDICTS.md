@@ -58,6 +58,8 @@ Standing test: could a player who never read a design document work out what thi
   on a small body, two dark eyes, stick arms and legs, one stem from the crown with a leaf, a
   bud, or a five-petal bloom by maturity; sprouts are the stem and its top out of the ground.
   Original primitives; proportions are the reference, nothing else.
+- 2026-09-02: "How do I return them to their homes? F takes, how do I give?" G beside a shrine
+  sends the squad of its type inside, one at a time; the chip counts them as inside.
 - 2026-09-02: "Hold Space to auto-throw, faster fights." Held Space repeats from 0.22 s at a
   cadence ramping to 0.15 s (Pikmin's throw cooldown).
 

@@ -226,6 +226,7 @@ func _physics_process(delta: float) -> void:
 	cmd.throw_held = Input.is_action_pressed("throw")
 	cmd.swarm_held = Input.is_action_pressed("swarm")
 	cmd.pluck_held = Input.is_action_pressed("pluck")
+	cmd.store_held = Input.is_action_pressed("store")
 	cmd.cursor = cursor
 	if sim.nav_dirty and nav != null:
 		nav.bake(sim, terrain.arrays)

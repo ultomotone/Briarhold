@@ -37,7 +37,8 @@ lives above this layer; read "What is yours" before you conclude you have been f
 - **The cursor is his.** Visible, free, never captured, under any name.
 - WASD moves him. Right-click on the ground walks him there. Left-click swings. Space throws at
   the cursor. R whistles at the cursor. X dismisses. C charges. Shift swarms. Q/E select type.
-  F plucks. These may gain alternates; they do not lose meaning.
+  F plucks, and at a shrine takes sprigs out; G at a shrine sends them in. These may gain
+  alternates; they do not lose meaning.
 - The world is continuous. He walks it. Terrain has real height and things to walk around.
 
 ## 2. The character is him

@@ -19,6 +19,7 @@ static func step(w: SimWorld, cmd: Commands, dt: float) -> void:
 	if k.down_t < 0.0:
 		_select(w, cmd)
 		_pluck(w, cmd, dt)
+		_store(w, cmd, dt)
 		_whistle(w, cmd, dt)
 		if cmd.dismiss_pressed:
 			_dismiss(w)
@@ -146,6 +147,45 @@ static func _withdraw(w: SimWorld, dt: float) -> void:
 	w.events.push("withdraw", {"pos": best.pos + Vector3(0.0, 2.3, 0.0), "to": to, "type": best.type_id, "left": int(h.stored[best.type_id])})
 	if w.squad_types().find(k.selected_type) < 0:
 		k.selected_type = best.type_id
+
+
+## Holding G beside a shrine sends the following sprigs of its type inside, one at a time: the
+## nearest walks the last step, vanishes into the foot of the shrine, and counts as inside.
+static func _store(w: SimWorld, cmd: Commands, dt: float) -> void:
+	var k: Entities.Knight = w.knight
+	if not cmd.store_held:
+		k.store_t = 0.14
+		return
+	var best: Entities.Shrine = null
+	var best_d: float = 3.2
+	for sh: Entities.Shrine in w.shrines:
+		if not sh.rooted:
+			continue
+		var d: float = SimWorld.flat_dist(k.pos, sh.pos)
+		if d < best_d:
+			best_d = d
+			best = sh
+	if best == null:
+		return
+	k.store_t += dt
+	if k.store_t < 0.14:
+		return
+	var pick: Entities.Sprig = null
+	var pick_d: float = 1e9
+	for s: Entities.Sprig in w.sprigs:
+		if s.state != Entities.Sprig.State.FOLLOW or s.type_id != best.type_id:
+			continue
+		var d: float = SimWorld.flat_dist(s.pos, best.pos)
+		if d < pick_d:
+			pick_d = d
+			pick = s
+	if pick == null:
+		return
+	k.store_t = 0.0
+	w.hold.store(pick.type_id, 1)
+	w._detach(pick)
+	pick.state = Entities.Sprig.State.DEAD # leaves the field without a tally: it is inside, not lost
+	w.events.push("stored_in", {"pos": best.pos + Vector3(0.0, 0.6, 0.0), "type": pick.type_id, "inside": int(w.hold.stored.get(pick.type_id, 0))})
 
 
 static func whistle_radius(w: SimWorld) -> float:

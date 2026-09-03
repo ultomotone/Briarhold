@@ -22,6 +22,7 @@ class Knight:
 	var selected_type: String = "ember"
 	var whistle_t: float = 0.0 # seconds the whistle has been held
 	var pluck_t: float = 0.0
+	var store_t: float = 0.0
 
 
 class Sprig:
