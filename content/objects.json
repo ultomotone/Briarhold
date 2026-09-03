@@ -91,6 +91,54 @@
       "seeds_other": 0,
       "value": 0,
       "radius": 0.7
+    },
+    {
+      "id": "relic_coin",
+      "name": "Copper Coin",
+      "kind": "relic",
+      "weight": 4,
+      "max_carriers": 8,
+      "seeds_match": 0,
+      "seeds_other": 0,
+      "value": 120,
+      "radius": 0.55,
+      "set": "coins"
+    },
+    {
+      "id": "relic_marble",
+      "name": "Glass Marble",
+      "kind": "relic",
+      "weight": 2,
+      "max_carriers": 4,
+      "seeds_match": 0,
+      "seeds_other": 0,
+      "value": 70,
+      "radius": 0.4,
+      "set": "toys"
+    },
+    {
+      "id": "relic_bead",
+      "name": "Blue Bead",
+      "kind": "relic",
+      "weight": 1,
+      "max_carriers": 2,
+      "seeds_match": 0,
+      "seeds_other": 0,
+      "value": 35,
+      "radius": 0.3,
+      "set": "sewing"
+    },
+    {
+      "id": "relic_bottlecap",
+      "name": "Bottle Cap",
+      "kind": "relic",
+      "weight": 5,
+      "max_carriers": 10,
+      "seeds_match": 0,
+      "seeds_other": 0,
+      "value": 55,
+      "radius": 0.6,
+      "set": "coins"
     }
   ]
 }

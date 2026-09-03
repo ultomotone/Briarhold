@@ -89,9 +89,21 @@ static func _pick_target(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType) -> 
 
 static func _hunt(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType, dt: float) -> void:
 	e.wind = 0.0
+	if t.prey:
+		_prey(w, e, t, dt)
+		return
 	_pick_target(w, e, t)
 	if e.target_kind.is_empty():
 		e.state = Entities.Enemy.State.IDLE
+		if e.wander != Vector3.INF and e.wander == e.home and SimWorld.flat_dist(e.pos, e.home) > 1.2:
+			# a visitor walking to its new bed
+			e.yaw = SimWorld.yaw_toward(e.pos, e.home, e.yaw)
+			e.pos = w.step_toward(e.pos, e.home, t.speed * 0.8, dt, t.radius)
+			return
+		if e.wander == e.home and t.sleeps_by_day and not w.clock.is_night():
+			e.wander = Vector3.INF
+			e.state = Entities.Enemy.State.SLEEP
+			return
 		if e.night:
 			# prowl the edge of the safe ring, waiting for something to step out
 			var ring: Vector3 = w.hold.pos + (e.pos - w.hold.pos).normalized() * (w.hold.safe_radius + 1.5)
@@ -99,6 +111,8 @@ static func _hunt(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType, dt: float)
 			if SimWorld.flat_dist(e.pos, ring) > 0.6:
 				e.yaw = SimWorld.yaw_toward(e.pos, ring, e.yaw)
 				e.pos = w.step_toward(e.pos, ring, t.speed * 0.5, dt, t.radius)
+		elif t.roams:
+			_roam(w, e, t, dt, 0.5)
 		elif SimWorld.flat_dist(e.pos, e.home) > 0.8:
 			e.yaw = SimWorld.yaw_toward(e.pos, e.home, e.yaw)
 			e.pos = w.step_toward(e.pos, e.home, t.speed * 0.6, dt, t.radius)
@@ -118,6 +132,57 @@ static func _hunt(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType, dt: float)
 		return
 	e.yaw = SimWorld.yaw_toward(e.pos, e.target_pos, e.yaw)
 	e.pos = w.step_toward(e.pos, e.target_pos, t.speed, dt, t.radius)
+
+
+## Prey ambles around its home and bolts from the gnome or any sprig that comes close.
+static func _prey(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType, dt: float) -> void:
+	e.state = Entities.Enemy.State.IDLE
+	var threat: Vector3 = Vector3.INF
+	var best: float = t.wake_radius
+	var dk: float = SimWorld.flat_dist(e.pos, w.knight.pos)
+	if w.knight.down_t < 0.0 and dk < best:
+		best = dk
+		threat = w.knight.pos
+	for sid: int in w.hash.query(e.pos, t.wake_radius):
+		var s: Entities.Sprig = w.sprig_by_id(sid)
+		if s == null or s.state == Entities.Sprig.State.DEAD:
+			continue
+		if s.latched and s.enemy_id == e.id:
+			continue
+		var d: float = SimWorld.flat_dist(e.pos, s.pos)
+		if d < best:
+			best = d
+			threat = s.pos
+	if threat != Vector3.INF:
+		var away: Vector3 = e.pos - threat
+		away.y = 0.0
+		if away.length() < 0.01:
+			away = Vector3(sin(e.yaw), 0.0, cos(e.yaw))
+		var to: Vector3 = e.pos + away.normalized() * 4.0
+		# keep to its range: bolt along the leash edge rather than off the map
+		if SimWorld.flat_dist(to, e.home) > t.leash_radius:
+			to = e.home + (to - e.home).normalized() * t.leash_radius
+		e.yaw = SimWorld.yaw_toward(e.pos, to, e.yaw)
+		e.pos = w.step_toward(e.pos, to, t.speed, dt, t.radius)
+		e.wander = Vector3.INF
+		return
+	_roam(w, e, t, dt, 0.45)
+
+
+## An ambling walk between spots near home, each spot from the enemy's own stream.
+static func _roam(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType, dt: float, pace: float) -> void:
+	e.wander_t -= dt
+	if e.wander == Vector3.INF or e.wander_t <= 0.0 or SimWorld.flat_dist(e.pos, e.wander) < 0.6:
+		var r := Rng.stream("%s:roam:%d:%d" % [w.seed_str(), e.id, w.tick])
+		var ang: float = r.randf() * TAU
+		var d: float = 2.0 + r.randf() * (t.leash_radius * 0.6)
+		e.wander = w.field.clamp_bound(e.home + Vector3(sin(ang), 0.0, cos(ang)) * d)
+		e.wander_t = 2.5 + r.randf() * 4.0
+		if r.randf() < 0.35:
+			return # it stands and looks about for a while
+	if SimWorld.flat_dist(e.pos, e.wander) > 0.6:
+		e.yaw = SimWorld.yaw_toward(e.pos, e.wander, e.yaw)
+		e.pos = w.step_toward(e.pos, e.wander, t.speed * pace, dt, t.radius)
 
 
 static func _bite(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType) -> void:
@@ -207,6 +272,7 @@ static func raid_size(w: SimWorld) -> int:
 
 
 static func on_dawn(w: SimWorld) -> void:
+	FieldSystem.arrivals(w, w.clock.day)
 	var gone: int = 0
 	for e: Entities.Enemy in w.enemies:
 		if e.night and e.state != Entities.Enemy.State.DEAD:

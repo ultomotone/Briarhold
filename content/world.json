@@ -1,10 +1,10 @@
 {
   "_doc": "World-shape and rule numbers. Units: the knight is 1.0 tall; the field is size x size centred on the Hold at the origin. Times in seconds of real play. Squad, carry, and sprout numbers follow Pikifen's shipped config at our scale (1 m ~ 24 Pikifen px); see docs/research/pikifen-notes.md.",
-  "size": 160.0,
-  "bound": 74.0,
+  "size": 240.0,
+  "bound": 114.0,
   "hold_radius": 9.0,
   "hold_safe_radius": 14.0,
-  "terrain_amplitude": 5.5,
+  "terrain_amplitude": 6.0,
   "terrain_frequency": 0.028,
   "field_cap_start": 40,
   "field_cap_per_heartroot": 10,
@@ -78,5 +78,14 @@
     "sprig_loss_points": -5,
     "carried_weight_points": 1,
     "relic_value_points": 1
+  },
+  "arrivals": {
+    "_doc": "Life on a clock. Rolled per day from the seed (randomness sets the problem). Posies regrow a pellet after regrow_seconds (+/- regrow_spread). Each dawn, beetles_min..beetles_max field beetles arrive at open spots, and with visitor_chance a grub wanders in from the rim.",
+    "posy_regrow_seconds": 150.0,
+    "posy_regrow_spread": 90.0,
+    "beetles_min": 2,
+    "beetles_max": 5,
+    "visitor_chance": 0.5,
+    "start_beetles": 4
   }
 }

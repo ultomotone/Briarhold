@@ -136,6 +136,18 @@ class Enemy:
 	var wind: float = 0.0 # telegraph 0..1 for the view
 	var seed_id: String = ""
 	var night: bool = false
+	var wander: Vector3 = Vector3.INF # roamers: where they are ambling to
+	var wander_t: float = 0.0
+
+
+class Posy:
+	extends RefCounted
+	var id: int = 0
+	var index: int = 0
+	var pos: Vector3 = Vector3.ZERO
+	var pellet_type: String = "ember"
+	var timer: float = 0.0 # seconds until the next pellet
+	var grown: int = 0 # pellets grown so far (the seed_id counter)
 
 
 class HazardZone:

@@ -116,6 +116,11 @@ func handle(ev: Dictionary) -> void:
 			_puff(ev["pos"] + Vector3(0.0, 2.3, 0.0), pal.col("sprig_" + str(ev["type"])).lightened(0.4))
 		"stored_in":
 			_puff(ev["pos"], pal.col("sprig_" + str(ev["type"])).lightened(0.3))
+		"arrivals":
+			var v: bool = bool(ev["visitor"])
+			_note("Day %d: %d beetles in the field%s" % [int(ev["day"]), int(ev["beetles"]), ", and something big came in from the rim" if v else ""])
+		"posy_grew":
+			_puff(ev["pos"] + Vector3(0.0, 1.2, 0.0), pal.col("sprig_" + str(ev["type"])).lightened(0.5))
 		"withdraw":
 			_puff(ev["pos"], pal.col("sprig_" + str(ev["type"])).lightened(0.4))
 		"stored":

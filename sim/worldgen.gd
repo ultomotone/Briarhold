@@ -22,10 +22,29 @@ static func populate(w: SimWorld) -> void:
 	for i: int in 5:
 		var ang: float = float(i) / 5.0 * TAU + r1.randf() * 0.4
 		w.spawn_sprout("stone", stone_at + Vector3(sin(ang), 0.0, cos(ang)) * (1.6 + r1.randf()), Vector3.INF, 0)
+	# pools: water, with something in them that only a Tide sprig will fetch
+	var rw := Rng.stream(ss + ":pools")
+	for i: int in 4:
+		var p: Vector3 = _open_spot(w, rw, 26.0, w.field.bound - 10.0)
+		var rad: float = 3.2 + rw.randf() * 2.2
+		var z := Entities.HazardZone.new()
+		z.id = w.new_id()
+		z.hazard_id = "water"
+		z.pos = w.ground(p)
+		z.radius = rad
+		w.hazards.append(z)
+		w.nav_blockers.append({"pos": z.pos, "r": rad + 0.4})
+		w.spawn_object("pellet_10" if i % 2 == 0 else "relic_marble", p + Vector3(0.4, 0.0, 0.2), "pool:%d" % i, "ember")
+	# posies: pellet flowers that regrow on a clock
+	var rpo := Rng.stream(ss + ":posies")
+	for i: int in 12:
+		var p: Vector3 = _open_spot(w, rpo, 14.0, w.field.bound - 8.0)
+		var po: Entities.Posy = w.spawn_posy(p, "ember" if rpo.randf() < 0.6 else "stone", i)
+		po.timer = 20.0 + rpo.randf() * 60.0
 	# pellets scattered over the field
 	var rp := Rng.stream(ss + ":pellets")
-	for i: int in 26:
-		var p: Vector3 = _open_spot(w, rp, 13.0, 64.0)
+	for i: int in 56:
+		var p: Vector3 = _open_spot(w, rp, 13.0, w.field.bound - 6.0)
 		var roll: float = rp.randf()
 		var tid: String = "pellet_1" if roll < 0.6 else ("pellet_5" if roll < 0.9 else "pellet_10")
 		var ptype: String = "ember" if rp.randf() < 0.65 else "stone"
@@ -34,13 +53,16 @@ static func populate(w: SimWorld) -> void:
 	var rr := Rng.stream(ss + ":relics")
 	w.spawn_object("relic_button", _open_spot(w, rr, 18.0, 40.0), "relic:button")
 	w.spawn_object("relic_thimble", _open_spot(w, rr, 36.0, 60.0), "relic:thimble")
+	w.spawn_object("relic_coin", _open_spot(w, rr, 50.0, 90.0), "relic:coin")
+	w.spawn_object("relic_bead", _open_spot(w, rr, 20.0, 70.0), "relic:bead")
+	w.spawn_object("relic_bottlecap", _open_spot(w, rr, 60.0, 100.0), "relic:bottlecap")
 	# grubs asleep in the open, each with pellets at its feet
 	var rg := Rng.stream(ss + ":grubs")
 	var placed: Array[Vector3] = []
 	var tries: int = 0
-	while placed.size() < 3 and tries < 60:
+	while placed.size() < 7 and tries < 120:
 		tries += 1
-		var p: Vector3 = _open_spot(w, rg, 24.0, 56.0)
+		var p: Vector3 = _open_spot(w, rg, 24.0, w.field.bound - 8.0)
 		var ok: bool = true
 		for q: Vector3 in placed:
 			if SimWorld.flat_dist(p, q) < 16.0:
@@ -55,20 +77,39 @@ static func populate(w: SimWorld) -> void:
 		for j: int in 2:
 			var ang: float = rg.randf() * TAU
 			w.spawn_object("pellet_5", p + Vector3(sin(ang), 0.0, cos(ang)) * (2.6 + rg.randf()), "grub:%d:pellet:%d" % [placed.size(), j], "ember")
-	# one fire vent with a fat pellet in the flames: Ember work
+	# fire vents with fat pellets in the flames: Ember work
 	var rv := Rng.stream(ss + ":vent")
-	var vent_at: Vector3 = _open_spot(w, rv, 18.0, 34.0)
-	var z := Entities.HazardZone.new()
-	z.id = w.new_id()
-	z.hazard_id = "fire"
-	z.pos = w.ground(vent_at)
-	z.radius = 2.2
-	w.hazards.append(z)
-	w.spawn_object("pellet_10", vent_at + Vector3(0.4, 0.0, 0.3), "vent:pellet", "ember")
-	# the bramble gate and the pocket behind it: a ring of stones with one way in
+	for i: int in 2:
+		var vent_at: Vector3 = _open_spot(w, rv, 18.0 + float(i) * 30.0, 34.0 + float(i) * 50.0)
+		var z := Entities.HazardZone.new()
+		z.id = w.new_id()
+		z.hazard_id = "fire"
+		z.pos = w.ground(vent_at)
+		z.radius = 2.2
+		w.hazards.insert(i, z) # vents first: tests and the view index them that way
+		w.spawn_object("pellet_10", vent_at + Vector3(0.4, 0.0, 0.3), "vent:%d:pellet" % i, "ember")
+	# bramble gates and the pockets behind them: rings of stones with one way in
 	var rgate := Rng.stream(ss + ":gate")
-	var gate_ang: float = rgate.randf() * TAU
-	var pocket_c: Vector3 = w.ground(Vector3(sin(gate_ang), 0.0, cos(gate_ang)) * 44.0)
+	var gate_ang0: float = rgate.randf() * TAU
+	for gi: int in 2:
+		_pocket(w, rgate, gate_ang0 + float(gi) * 2.4, 44.0 + float(gi) * 36.0, gi)
+	# the day's first animals
+	var rb := Rng.stream(ss + ":beetles")
+	for i: int in w.content.wi_in("arrivals", "start_beetles", 4):
+		var e: Entities.Enemy = w.spawn_enemy("field_beetle", _open_spot(w, rb, 14.0, w.field.bound - 8.0), "beetle:%d" % i)
+		e.state = Entities.Enemy.State.IDLE
+	# green scatter for the view only: leaves and stalks, never in the way
+	var rpl := Rng.stream(ss + ":plants")
+	for i: int in 700:
+		var p: Vector3 = _open_spot(w, rpl, 6.0, w.field.bound - 2.0)
+		# thickets: denser where the slow noise says so
+		if w.field.noise2(p.x * 0.05 + 3.0, p.z * 0.05 - 9.0) < 0.42 and rpl.randf() < 0.6:
+			continue
+		w.plants.append({"pos": w.ground(p), "s": 0.5 + rpl.randf() * 1.3, "kind": "stalk" if rpl.randf() < 0.55 else "leaf", "rot": rpl.randf() * TAU})
+
+
+static func _pocket(w: SimWorld, rgate: Rng, gate_ang: float, dist: float, gi: int) -> void:
+	var pocket_c: Vector3 = w.ground(Vector3(sin(gate_ang), 0.0, cos(gate_ang)) * dist)
 	var toward_hold: Vector3 = (w.hold.pos - pocket_c)
 	toward_hold.y = 0.0
 	toward_hold = toward_hold.normalized()
@@ -79,7 +120,7 @@ static func populate(w: SimWorld) -> void:
 	g.width = 4.6
 	g.hp = 420.0
 	g.max_hp = g.hp
-	g.seed_id = "gate:1"
+	g.seed_id = "gate:%d" % (gi + 1)
 	w.gates.append(g)
 	var gate_dir_ang: float = atan2(toward_hold.x, toward_hold.z)
 	for i: int in 9:
@@ -89,24 +130,27 @@ static func populate(w: SimWorld) -> void:
 		if d < 0.42:
 			continue
 		w.obstacles.append({"pos": w.ground(sp), "r": 1.6, "h": 2.4 + rgate.randf() * 0.8})
-	w.spawn_object("relic_key", pocket_c + Vector3(1.4, 0.0, 0.8), "pocket:key")
-	w.spawn_object("heartroot", pocket_c + Vector3(-1.8, 0.0, -1.2), "pocket:heartroot")
-	# green scatter for the view only: leaves and stalks, never in the way
-	var rpl := Rng.stream(ss + ":plants")
-	for i: int in 260:
-		var p: Vector3 = _open_spot(w, rpl, 6.0, w.field.bound - 2.0)
-		w.plants.append({"pos": w.ground(p), "s": 0.5 + rpl.randf() * 1.3, "kind": "stalk" if rpl.randf() < 0.55 else "leaf", "rot": rpl.randf() * TAU})
+	if gi == 0:
+		w.spawn_object("relic_key", pocket_c + Vector3(1.4, 0.0, 0.8), "pocket:key")
+		w.spawn_object("heartroot", pocket_c + Vector3(-1.8, 0.0, -1.2), "pocket:heartroot")
+	else:
+		w.spawn_object("heartroot", pocket_c + Vector3(1.2, 0.0, 0.6), "pocket:%d:heartroot" % gi)
+		w.spawn_object("pellet_20", pocket_c + Vector3(-1.6, 0.0, -1.0), "pocket:%d:pellet" % gi, "stone")
 
 
 static func _stones(w: SimWorld) -> void:
 	var r := Rng.stream(w.seed_str() + ":stones")
-	for i: int in 34:
+	for i: int in 80:
 		var p: Vector3 = _open_spot(w, r, 12.0, w.field.bound - 3.0)
 		var rad: float = 0.7 + r.randf() * 1.6
 		w.obstacles.append({"pos": w.ground(p), "r": rad, "h": 0.6 + r.randf() * 1.6})
 
 
-## A point in the annulus [rmin, rmax] around the Hold that is not inside a stone.
+## A point in the annulus [rmin, rmax] around the Hold that is not inside a stone or a pool.
+static func open_spot(w: SimWorld, r: Rng, rmin: float, rmax: float) -> Vector3:
+	return _open_spot(w, r, rmin, rmax)
+
+
 static func _open_spot(w: SimWorld, r: Rng, rmin: float, rmax: float) -> Vector3:
 	for attempt: int in 40:
 		var ang: float = r.randf() * TAU
@@ -119,6 +163,12 @@ static func _open_spot(w: SimWorld, r: Rng, rmin: float, rmax: float) -> Vector3
 			if SimWorld.flat_dist(p, c) < float(ob["r"]) + 1.2:
 				clear = false
 				break
+		if clear:
+			for nb: Dictionary in w.nav_blockers:
+				var c: Vector3 = nb["pos"]
+				if SimWorld.flat_dist(p, c) < float(nb["r"]) + 1.0:
+					clear = false
+					break
 		if clear:
 			return w.ground(p)
 	return w.ground(w.hold.pos + Vector3(rmin, 0.0, 0.0))

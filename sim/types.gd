@@ -116,6 +116,8 @@ class EnemyType:
 	var leash_radius: float
 	var sleeps_by_day: bool
 	var night: bool
+	var roams: bool
+	var prey: bool
 	var weight: int
 	var max_carriers: int
 	var seeds: int
@@ -145,6 +147,8 @@ class EnemyType:
 		t.leash_radius = Types._f(d, "leash_radius", 14.0)
 		t.sleeps_by_day = Types._b(d, "sleeps_by_day", true)
 		t.night = Types._b(d, "night")
+		t.roams = Types._b(d, "roams")
+		t.prey = Types._b(d, "prey")
 		t.weight = Types._i(d, "weight", 5)
 		t.max_carriers = Types._i(d, "max_carriers", 10)
 		t.seeds = Types._i(d, "seeds", 5)

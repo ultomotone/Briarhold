@@ -54,6 +54,9 @@ func height_at(x: float, z: float) -> float:
 		amp *= 0.5
 		f *= 2.13
 	h = (h / tot - 0.5) * 2.0 * amplitude
+	# rough country: a slow noise scales the relief, so there are downs and there are hills
+	var rough: float = 0.55 + noise2(x * frequency * 0.22 + 101.0, z * frequency * 0.22 - 57.0) * 1.1
+	h *= rough
 	# the clearing: flat within hold_radius, blending out over the same distance again
 	var r: float = sqrt(x * x + z * z)
 	var t: float = clampf((r - hold_radius) / hold_radius, 0.0, 1.0)

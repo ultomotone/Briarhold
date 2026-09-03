@@ -1,5 +1,22 @@
 # CHANGELOG — decisions with reasoning, newest first
 
+## 2026-09-02 — S000d: the wider field and life on a clock (owner-present session)
+
+He emptied the field in ten minutes and asked for more map and things that happen. The field
+is now 240 m across (was 160) with a slow roughness noise so there are hills and downs; four
+pools (water, with a fat pellet or a marble in each that only a Tide sprig will fetch; carriers
+route around them); two vents; two gated pockets; 56 pellets, five relic kinds in the open,
+seven grubs, 80 stones, and thickets where the noise is dense. And a clock: twelve pellet
+posies each regrow a pellet on a seeded timer (150 s ± 90); field beetles roam near a home and
+bolt from him and the squad (six seeds if caught; harmless); every dawn rolls two to five new
+beetles and, half the time, a grub that walks in from the rim to a bed of its own. All of it
+from streams named by the seed, the posy, and the day: randomness sets the problem.
+
+Verbs added since S000c: G beside a shrine sends the squad of its type inside; the sprigs
+were rebuilt cuter (big head, eyes, stick limbs, leaf/bud/bloom tops).
+
+**Gate.** import · check · 68 tests · shots read.
+
 ## 2026-09-02 — S000c: first play feedback (owner-present session)
 
 A and D were mirrored (camera right vector was forward x up flipped); fixed. The character is a

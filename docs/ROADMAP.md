@@ -15,6 +15,10 @@ seconds of play.
   ripest-first throws to a fixed apex with auto-throw, nearest-wins idle work, chase leash, hex
   dismiss piles, real carry curve with spot claiming, deterministic seed spiral, uneven maturity,
   two-gate shake, hazard status fields. `docs/research/pikifen-notes.md`.
+- [x] S000c First play feedback: A/D fixed, the gnome, delivery into the shrine, reserves in and
+  out (F / G), cuter sprigs, auto-throw cadence.
+- [x] S000d The wider field: 240 m, hills, pools, two vents, two pockets, more of everything;
+  posies on seeded timers, field beetles, dawn arrivals.
 
 ## Arc 1 — Feel and legibility (the slice made honest)
 

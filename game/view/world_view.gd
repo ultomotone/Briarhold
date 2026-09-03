@@ -24,7 +24,12 @@ func build(p: PaletteData, t: ContentTables, w: SimWorld) -> void:
 	_build_stones(w)
 	_build_plants(w)
 	for z: Entities.HazardZone in w.hazards:
-		_vents.append(_build_vent(z))
+		if z.hazard_id == "fire":
+			_vents.append(_build_vent(z))
+		elif z.hazard_id == "water":
+			_build_pool(z)
+	for po: Entities.Posy in w.posies:
+		_build_posy(po)
 
 
 func _build_hold(w: SimWorld) -> void:
@@ -153,6 +158,43 @@ func _build_vent(z: Entities.HazardZone) -> Node3D:
 	light.shadow_enabled = false
 	n.add_child(light)
 	return n
+
+
+func _build_pool(z: Entities.HazardZone) -> void:
+	var n := Node3D.new()
+	n.position = z.pos
+	add_child(n)
+	var water := _mesh(_cyl(z.radius, 0.12), _mat(pal.col("pool_water"), 0.15, 0.1, pal.col("pool_water"), 0.15))
+	water.position.y = 0.02
+	var wm: StandardMaterial3D = water.material_override
+	wm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	wm.albedo_color.a = 0.82
+	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	n.add_child(water)
+	var rim := TorusMesh.new()
+	rim.inner_radius = z.radius - 0.1
+	rim.outer_radius = z.radius + 0.35
+	rim.rings = 28
+	rim.ring_segments = 5
+	var bank := _mesh(rim, _mat(pal.col("pool_rim"), 1.0, 0.0))
+	bank.position.y = 0.06
+	n.add_child(bank)
+
+
+func _build_posy(po: Entities.Posy) -> void:
+	var n := Node3D.new()
+	n.position = po.pos
+	add_child(n)
+	var tint: Color = pal.col(tables.sprig(po.pellet_type).colour_key)
+	for i: int in 3:
+		var ang: float = float(i) / 3.0 * TAU + float(po.index)
+		var stalk := _mesh(_cyl(0.035, 1.1), _mat(pal.col("posy_stalk"), 0.9, 0.0))
+		stalk.position = Vector3(sin(ang) * 0.25, 0.55, cos(ang) * 0.25)
+		stalk.rotation = Vector3(cos(ang) * 0.18, 0.0, -sin(ang) * 0.18)
+		n.add_child(stalk)
+		var head := _mesh(_ico(0.16), _mat(tint, 0.7, 0.0, tint, 0.35))
+		head.position = Vector3(sin(ang) * 0.35, 1.12, cos(ang) * 0.35)
+		n.add_child(head)
 
 
 # ---- per-frame ----------------------------------------------------------------------------------
@@ -366,7 +408,25 @@ func _make_enemy(e: Entities.Enemy) -> Node3D:
 	body.name = "body"
 	n.add_child(body)
 	var tint: Color = pal.col(et.colour_key)
-	if e.type_id == "night_stalker":
+	if e.type_id == "field_beetle":
+		var shell := _mesh(_ico(et.radius), _mat(pal.col("enemy_beetle_shell"), 0.5, 0.1))
+		shell.scale = Vector3(1.0, 0.55, 1.3)
+		shell.position.y = et.height * 0.6
+		body.add_child(shell)
+		var under := _mesh(_ico(et.radius * 0.8), _mat(tint, 0.9, 0.0))
+		under.scale = Vector3(1.0, 0.5, 1.2)
+		under.position.y = et.height * 0.4
+		body.add_child(under)
+		var head := _mesh(_ico(et.radius * 0.45), _mat(tint, 0.9, 0.0))
+		head.position = Vector3(0.0, et.height * 0.5, et.radius * 1.15)
+		body.add_child(head)
+		for i: int in 6:
+			var leg := _mesh(_cyl(0.025, 0.4), _mat(tint, 0.9, 0.0))
+			var side: float = -1.0 if i % 2 == 0 else 1.0
+			leg.position = Vector3(side * et.radius * 0.9, 0.15, -0.25 + 0.25 * float(i / 2))
+			leg.rotation.z = side * 0.7
+			body.add_child(leg)
+	elif e.type_id == "night_stalker":
 		var torso := _mesh(_capsule(et.radius * 0.7, et.height * 1.2), _mat(tint, 0.9, 0.0))
 		torso.rotation.x = PI * 0.5
 		torso.position.y = et.height * 0.55

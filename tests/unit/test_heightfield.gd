@@ -33,7 +33,8 @@ func test_height_within_amplitude() -> void:
 		var x: float = float(i % 20) * 7.0 - 70.0
 		var z: float = float(i / 20) * 7.0 - 70.0
 		var y: float = h.height_at(x, z)
-		assert_true(absf(y) <= h.amplitude + 0.001, "height %f within amplitude" % y)
+		# rough country scales relief up to 1.65x in the hills
+		assert_true(absf(y) <= h.amplitude * 1.7, "height %f within amplitude" % y)
 
 
 func test_raycast_hits_ground() -> void:

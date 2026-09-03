@@ -23,6 +23,9 @@ func bake(w: SimWorld, terrain_arrays: Array) -> void:
 		var r: float = float(ob["r"])
 		var h: float = float(ob["h"])
 		src.add_faces(_cylinder_faces(c, r, h), Transform3D.IDENTITY)
+	for nb: Dictionary in w.nav_blockers:
+		var c: Vector3 = nb["pos"]
+		src.add_faces(_cylinder_faces(c, float(nb["r"]), 1.5, 14), Transform3D.IDENTITY)
 	for g: Entities.Gate in w.gates:
 		if g.open:
 			continue

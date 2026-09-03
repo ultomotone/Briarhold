@@ -60,6 +60,13 @@ Standing test: could a player who never read a design document work out what thi
   Original primitives; proportions are the reference, nothing else.
 - 2026-09-02: "How do I return them to their homes? F takes, how do I give?" G beside a shrine
   sends the squad of its type inside, one at a time; the chip counts them as inside.
+- 2026-09-02: "Expand the map, more landscape; I ran around for ten minutes looking for new
+  stuff and it wasn't there; randomized timers, animals, monsters. The night is super cool and
+  intense." Field 160 → 240 m with hills and downs, four pools (Tide work, teased), two vents,
+  two gated pockets, 56 pellets, five relic kinds in the open, seven grubs, 80 stones,
+  thickets. Life on a clock: twelve pellet posies regrow on seeded timers; field beetles roam
+  and bolt (six seeds if caught); every dawn rolls new beetles and, half the time, a grub that
+  wanders in from the rim to a new bed. The night is Keep.
 - 2026-09-02: "Hold Space to auto-throw, faster fights." Held Space repeats from 0.22 s at a
   cadence ramping to 0.15 s (Pikmin's throw cooldown).
 

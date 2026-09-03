@@ -81,7 +81,7 @@ func _validate() -> void:
 			errors.append("object %s max_carriers < weight" % id)
 	for id: String in enemies.keys():
 		var en: Types.EnemyType = enemy(id)
-		if en.bite_count < 1 or en.hp <= 0.0:
+		if en.bite_count < 0 or en.hp <= 0.0 or (en.attack == "bite" and en.bite_count < 1):
 			errors.append("enemy %s has a bad bite_count or hp" % id)
 	if world.is_empty():
 		errors.append("world.json empty")
@@ -94,6 +94,10 @@ func wn(section: String, key: String, dflt: float = 0.0) -> float:
 		var d: Dictionary = sec
 		return float(d.get(key, dflt))
 	return dflt
+
+
+func wi_in(section: String, key: String, dflt: int = 0) -> int:
+	return int(wn(section, key, float(dflt)))
 
 
 ## Top-level world number, e.g. w("day_seconds").

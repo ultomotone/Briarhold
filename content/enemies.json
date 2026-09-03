@@ -1,5 +1,5 @@
 {
-  "_doc": "Bestiary. All numbers deterministic: no hit chance, no damage rolls. bite_count = sprigs eaten per bite; telegraph_seconds = visible wind-up before the bite lands; itch_damage = damage taken before it shakes attackers off; seeds = shrine seeds when the corpse is carried home. sleeps_by_day: dormant until the knight or a sprig enters wake_radius. night: spawns only at night, retreats at dawn. itch_time: the shake needs both itch_damage taken AND itch_time elapsed since the last shake, so a burst cannot shake it early. back_multiplier: damage taken from behind.",
+  "_doc": "Bestiary. All numbers deterministic: no hit chance, no damage rolls. bite_count = sprigs eaten per bite; telegraph_seconds = visible wind-up before the bite lands; itch_damage = damage taken before it shakes attackers off; seeds = shrine seeds when the corpse is carried home. sleeps_by_day: dormant until the knight or a sprig enters wake_radius. night: spawns only at night, retreats at dawn. itch_time: the shake needs both itch_damage taken AND itch_time elapsed since the last shake, so a burst cannot shake it early. back_multiplier: damage taken from behind. roams: wanders on its own around its home. prey: runs from the gnome and the squad instead of hunting them.",
   "enemies": [
     {
       "id": "grub",
@@ -56,6 +56,36 @@
       "line": "Comes at dusk, in twos and threes, for whatever is left in the field. Gone at dawn.",
       "itch_time": 2.5,
       "back_multiplier": 1.25
+    },
+    {
+      "id": "field_beetle",
+      "name": "Field Beetle",
+      "colour_key": "enemy_beetle",
+      "hp": 140.0,
+      "speed": 4.4,
+      "radius": 0.45,
+      "height": 0.5,
+      "attack": "none",
+      "bite_count": 0,
+      "bite_reach": 0.0,
+      "damage_to_knight": 0.0,
+      "telegraph_seconds": 0.0,
+      "attack_cooldown": 9.0,
+      "itch_damage": 30.0,
+      "shake_stun_seconds": 0.3,
+      "wake_radius": 5.5,
+      "leash_radius": 22.0,
+      "sleeps_by_day": false,
+      "night": false,
+      "weight": 3,
+      "max_carriers": 6,
+      "seeds": 6,
+      "value": 0,
+      "roams": true,
+      "prey": true,
+      "itch_time": 2.0,
+      "back_multiplier": 1.0,
+      "line": "Skitters about the field and bolts when you come close. Six seeds if you can catch it."
     }
   ]
 }

@@ -31,9 +31,11 @@ func test_worldgen_is_deterministic() -> void:
 	for i: int in a.objects.size():
 		assert_eq(a.objects[i].pos, b.objects[i].pos)
 		assert_eq(a.objects[i].seed_id, b.objects[i].seed_id)
-	assert_eq(a.enemies.size(), 3)
-	assert_eq(a.gates.size(), 1)
-	assert_eq(a.hazards.size(), 1)
+	assert_eq(a.enemies.size(), 7 + 4)
+	assert_eq(a.gates.size(), 2)
+	assert_eq(a.hazards.size(), 2 + 4)
+	assert_eq(a.hazards[0].hazard_id, "fire")
+	assert_eq(a.posies.size(), 12)
 	assert_eq(a.sprouts.size(), 17)
 	var c := _world(4)
 	assert_ne(a.objects[0].pos, c.objects[0].pos)
@@ -113,7 +115,7 @@ func test_pellet_carried_home_becomes_seeds() -> void:
 	var cmd := Commands.new()
 	# a pellet just outside the clearing, four ember sprigs standing on it
 	w.hold.cap = 100
-	var o: Entities.WorldObject = w.spawn_object("pellet_1", Vector3(0.0, 0.0, 12.0), "", "ember")
+	var o: Entities.WorldObject = w.spawn_object("pellet_1", Vector3(0.0, 0.0, 9.5), "", "ember")
 	for i: int in 2:
 		var s: Entities.Sprig = w.spawn_sprig("ember", o.pos + Vector3(0.3 * float(i), 0.0, 0.2), Entities.Sprig.State.IDLE)
 		CarrySystem.join(w, s, o)
@@ -425,6 +427,50 @@ func test_hold_g_at_a_shrine_sends_sprigs_inside() -> void:
 	assert_eq(w.squad_count("ember"), 0)
 	assert_eq(stone.state, Entities.Sprig.State.FOLLOW) # no Stone shrine here: it stays with him
 	assert_eq(w.lost_total, lost0) # inside is not lost
+
+
+func test_posies_regrow_on_a_seeded_clock() -> void:
+	var w := _world()
+	var po: Entities.Posy = w.posies[0]
+	po.timer = 0.5
+	var cmd := Commands.new()
+	_run(w, cmd, 1.0)
+	var found: int = 0
+	for o: Entities.WorldObject in w.objects:
+		if o.seed_id.begins_with("posy:%d:" % po.index):
+			found += 1
+	assert_eq(found, 1)
+	assert_gt(po.timer, 30.0)
+	# the same seed grows the same pellet
+	var w2 := _world()
+	w2.posies[0].timer = 0.5
+	_run(w2, cmd, 1.0)
+	var a: String = ""
+	var b: String = ""
+	for o: Entities.WorldObject in w.objects:
+		if o.seed_id == "posy:0:0":
+			a = o.type_id
+	for o: Entities.WorldObject in w2.objects:
+		if o.seed_id == "posy:0:0":
+			b = o.type_id
+	assert_eq(a, b)
+
+
+func test_beetles_flee_and_dawn_brings_arrivals() -> void:
+	var w := _world()
+	w.enemies.clear()
+	var e: Entities.Enemy = w.spawn_enemy("field_beetle", Vector3(0.0, 0.0, 30.0))
+	e.state = Entities.Enemy.State.IDLE
+	w.knight.pos = e.pos + Vector3(0.0, 0.0, -2.0)
+	var d0: float = SimWorld.flat_dist(e.pos, w.knight.pos)
+	var cmd := Commands.new()
+	_run(w, cmd, 1.0)
+	assert_gt(SimWorld.flat_dist(e.pos, w.knight.pos), d0 + 1.0)
+	assert_eq(w.knight.hp, w.knight.max_hp)
+	var before: int = w.enemies.size()
+	w.clock.time = w.clock.cycle() - 0.5
+	_run(w, cmd, 1.0)
+	assert_gt(w.enemies.size(), before)
 
 
 func test_no_engine_randomness_in_sim() -> void:

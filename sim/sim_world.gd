@@ -24,6 +24,8 @@ var hazards: Array[Entities.HazardZone] = []
 var gates: Array[Entities.Gate] = []
 var jobs: Array[Entities.CarryJob] = []
 var obstacles: Array[Dictionary] = [] # {"pos": Vector3, "r": float, "h": float}
+var nav_blockers: Array[Dictionary] = [] # {"pos", "r"}: routed around by carriers, walkable by feet (pools)
+var posies: Array[Entities.Posy] = []
 var plants: Array[Dictionary] = [] # view-only scatter {"pos", "s", "kind"}
 var hash: SpatialHash
 var next_id: int = 1
@@ -88,6 +90,7 @@ func step(cmd: Commands, dt: float) -> void:
 	EnemySystem.step(self, dt)
 	HazardSystem.step(self, dt)
 	HoldSystem.step(self, dt)
+	FieldSystem.step(self, dt)
 	_end_tick()
 
 
@@ -363,6 +366,16 @@ func spawn_enemy(type_id: String, p: Vector3, seed_id: String = "") -> Entities.
 	e.yaw = r.randf() * TAU
 	enemies.append(e)
 	return e
+
+
+func spawn_posy(p: Vector3, pellet_type: String, index: int) -> Entities.Posy:
+	var po := Entities.Posy.new()
+	po.id = new_id()
+	po.index = index
+	po.pos = ground(p)
+	po.pellet_type = pellet_type
+	posies.append(po)
+	return po
 
 
 func spawn_sprout(type_id: String, p: Vector3, from: Vector3 = Vector3.INF, maturity: int = 0) -> Entities.Sprout:
