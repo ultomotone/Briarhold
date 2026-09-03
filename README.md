@@ -1,6 +1,6 @@
 # Briarhold
 
-A thumb-high knight. A kingdom gone to briar. Sprigs at your heel.
+A thumb-high gnome. A kingdom gone to briar. Sprigs at your heel.
 
 An original creature-commander built for one player. Godot 4.7, GDScript, a pure deterministic
 simulation under a view, every number in JSON, one increment per scheduled build.

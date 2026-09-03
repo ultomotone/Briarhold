@@ -1,64 +1,109 @@
-## The knight, built from primitives so his silhouette is honest at play distance: a squat armored
-## body, a helm with a slit, a sword in the right hand, a round shield on the left arm.
+## The gnome (owner verdict 2026-09-02: a gnome, not a knight). Built from primitives so his
+## silhouette is honest at play distance: boots, a round tunic with a belt, a big nose, a white
+## beard, a tall red cap that leans, a sword in the right hand, a round shield on the left arm.
+## The class keeps its old name so the sim's "knight" record and this view stay one thing.
 class_name KnightView
 extends Node3D
 
 var body: Node3D
 var sword_pivot: Node3D
-var shield: Node3D
+var cap: Node3D
 var _walk_phase: float = 0.0
-var _mat_armor: StandardMaterial3D
-var _mat_cloth: StandardMaterial3D
-var _mat_steel: StandardMaterial3D
 
 
 func build(pal: PaletteData) -> void:
-	_mat_armor = _mat(pal.col("knight_armor"), 0.55, 0.35)
-	_mat_cloth = _mat(pal.col("knight_cloth"), 0.95, 0.0)
-	_mat_steel = _mat(pal.col("knight_steel"), 0.3, 0.7)
+	var m_cap := _mat(pal.col("gnome_cap"), 0.9, 0.0)
+	var m_tunic := _mat(pal.col("gnome_tunic"), 0.9, 0.0)
+	var m_skin := _mat(pal.col("gnome_skin"), 0.8, 0.0)
+	var m_beard := _mat(pal.col("gnome_beard"), 0.95, 0.0)
+	var m_boot := _mat(pal.col("gnome_boot"), 0.9, 0.0)
+	var m_belt := _mat(pal.col("gnome_belt"), 0.8, 0.0)
+	var m_steel := _mat(pal.col("knight_steel"), 0.3, 0.7)
 	body = Node3D.new()
 	add_child(body)
-	# torso
-	var torso := _mesh(_capsule(0.28, 0.62), _mat_armor)
-	torso.position = Vector3(0.0, 0.62, 0.0)
-	body.add_child(torso)
-	# tabard
-	var tab := _mesh(_box(0.36, 0.42, 0.16), _mat_cloth)
-	tab.position = Vector3(0.0, 0.5, 0.2)
-	body.add_child(tab)
-	# helm
-	var helm := _mesh(_cyl(0.2, 0.26), _mat_steel)
-	helm.position = Vector3(0.0, 1.1, 0.0)
-	body.add_child(helm)
-	var crest := _mesh(_box(0.05, 0.22, 0.3), _mat_cloth)
-	crest.position = Vector3(0.0, 1.3, 0.0)
-	body.add_child(crest)
-	# legs
-	for sx: float in [-0.12, 0.12]:
-		var leg := _mesh(_capsule(0.09, 0.34), _mat_armor)
+	# boots
+	for sx: float in [-0.13, 0.13]:
+		var boot := _mesh(_box(0.16, 0.12, 0.26), m_boot)
+		boot.position = Vector3(sx, 0.06, 0.04)
+		body.add_child(boot)
+		var leg := _mesh(_cyl(0.07, 0.2), m_tunic)
 		leg.position = Vector3(sx, 0.2, 0.0)
 		body.add_child(leg)
+	# tunic: a round belly with a belt
+	var belly := SphereMesh.new()
+	belly.radius = 0.3
+	belly.height = 0.6
+	belly.radial_segments = 12
+	belly.rings = 6
+	var tunic := _mesh(belly, m_tunic)
+	tunic.position = Vector3(0.0, 0.55, 0.0)
+	tunic.scale = Vector3(1.0, 1.05, 0.9)
+	body.add_child(tunic)
+	var belt := _mesh(_cyl(0.305, 0.06), m_belt)
+	belt.position = Vector3(0.0, 0.5, 0.0)
+	body.add_child(belt)
+	var buckle := _mesh(_box(0.08, 0.07, 0.03), m_steel)
+	buckle.position = Vector3(0.0, 0.5, 0.29)
+	body.add_child(buckle)
+	# head, nose, beard
+	var head := _mesh(_sphere(0.19), m_skin)
+	head.position = Vector3(0.0, 0.95, 0.02)
+	body.add_child(head)
+	var nose := _mesh(_sphere(0.06), m_skin)
+	nose.position = Vector3(0.0, 0.93, 0.21)
+	body.add_child(nose)
+	var beard := _mesh(_sphere(0.17), m_beard)
+	beard.position = Vector3(0.0, 0.82, 0.12)
+	beard.scale = Vector3(1.0, 1.25, 0.8)
+	body.add_child(beard)
+	for sx: float in [-0.07, 0.07]:
+		var eye := _mesh(_sphere(0.025), m_belt)
+		eye.position = Vector3(sx, 0.99, 0.19)
+		body.add_child(eye)
+	# the cap: tall, pointed, leaning back a touch
+	cap = Node3D.new()
+	cap.position = Vector3(0.0, 1.04, -0.02)
+	cap.rotation_degrees = Vector3(-12.0, 0.0, 4.0)
+	body.add_child(cap)
+	var brim := _mesh(_cyl(0.22, 0.08), m_cap)
+	brim.position = Vector3(0.0, 0.02, 0.0)
+	cap.add_child(brim)
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.0
+	cone.bottom_radius = 0.2
+	cone.height = 0.62
+	cone.radial_segments = 10
+	var point := _mesh(cone, m_cap)
+	point.position = Vector3(0.0, 0.36, 0.0)
+	cap.add_child(point)
 	# sword arm
 	sword_pivot = Node3D.new()
-	sword_pivot.position = Vector3(0.36, 0.86, 0.0)
+	sword_pivot.position = Vector3(0.34, 0.66, 0.0)
 	body.add_child(sword_pivot)
-	var arm := _mesh(_capsule(0.07, 0.3), _mat_armor)
+	var arm := _mesh(_capsule(0.06, 0.26), m_tunic)
 	arm.rotation_degrees = Vector3(90.0, 0.0, 0.0)
-	arm.position = Vector3(0.0, 0.0, 0.16)
+	arm.position = Vector3(0.0, 0.0, 0.14)
 	sword_pivot.add_child(arm)
-	var blade := _mesh(_box(0.06, 0.02, 0.95), _mat_steel)
-	blade.position = Vector3(0.0, 0.0, 0.78)
+	var hand := _mesh(_sphere(0.06), m_skin)
+	hand.position = Vector3(0.0, 0.0, 0.28)
+	sword_pivot.add_child(hand)
+	var blade := _mesh(_box(0.06, 0.02, 0.8), m_steel)
+	blade.position = Vector3(0.0, 0.0, 0.72)
 	sword_pivot.add_child(blade)
-	var guard := _mesh(_box(0.26, 0.04, 0.05), _mat_steel)
+	var guard := _mesh(_box(0.22, 0.04, 0.05), m_steel)
 	guard.position = Vector3(0.0, 0.0, 0.32)
 	sword_pivot.add_child(guard)
-	# shield
-	shield = _mesh(_cyl(0.3, 0.05), _mat_cloth)
-	shield.position = Vector3(-0.4, 0.78, 0.1)
+	# shield arm
+	var arm2 := _mesh(_capsule(0.06, 0.24), m_tunic)
+	arm2.rotation_degrees = Vector3(0.0, 0.0, 70.0)
+	arm2.position = Vector3(-0.3, 0.6, 0.06)
+	body.add_child(arm2)
+	var shield := _mesh(_cyl(0.24, 0.05), m_boot)
+	shield.position = Vector3(-0.42, 0.56, 0.1)
 	shield.rotation_degrees = Vector3(90.0, 0.0, 0.0)
 	body.add_child(shield)
-	var boss := _mesh(_cyl(0.08, 0.06), _mat_steel)
-	boss.position = Vector3(-0.4, 0.78, 0.14)
+	var boss := _mesh(_cyl(0.07, 0.06), m_steel)
+	boss.position = Vector3(-0.42, 0.56, 0.14)
 	boss.rotation_degrees = Vector3(90.0, 0.0, 0.0)
 	body.add_child(boss)
 	sword_pivot.rotation_degrees = Vector3(-35.0, 0.0, 0.0)
@@ -74,14 +119,15 @@ func pose(p: Vector3, yaw: float, swing: float, moving: bool, down: float, delta
 		return
 	body.rotation.x = 0.0
 	if moving:
-		_walk_phase += delta * 11.0
-		body.position.y = absf(sin(_walk_phase)) * 0.06
-		body.rotation.z = sin(_walk_phase) * 0.04
+		_walk_phase += delta * 12.0
+		body.position.y = absf(sin(_walk_phase)) * 0.07
+		body.rotation.z = sin(_walk_phase) * 0.05
+		cap.rotation_degrees.x = -12.0 - sin(_walk_phase * 0.5) * 4.0
 	else:
 		body.position.y = lerpf(body.position.y, 0.0, clampf(delta * 8.0, 0.0, 1.0))
 		body.rotation.z = 0.0
+		cap.rotation_degrees.x = lerpf(cap.rotation_degrees.x, -12.0, clampf(delta * 6.0, 0.0, 1.0))
 	if swing >= 0.0:
-		# wind back, then the cut: fast through the contact window, easing out
 		var t: float = swing
 		var ang: float
 		if t < 0.3:
@@ -111,6 +157,15 @@ static func _mesh(m: Mesh, mat: Material) -> MeshInstance3D:
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	return mi
+
+
+static func _sphere(r: float) -> SphereMesh:
+	var s := SphereMesh.new()
+	s.radius = r
+	s.height = r * 2.0
+	s.radial_segments = 10
+	s.rings = 6
+	return s
 
 
 static func _capsule(r: float, h: float) -> CapsuleMesh:

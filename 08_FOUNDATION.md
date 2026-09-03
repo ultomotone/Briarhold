@@ -42,7 +42,7 @@ lives above this layer; read "What is yours" before you conclude you have been f
 
 ## 2. The character is him
 
-One persistent knight with a name, a body, a sword, health, and eventually gear and skills. He
+One persistent gnome (owner verdict 2026-09-02; the code still calls the record `knight`) with a name, a body, a sword, health, and eventually gear and skills. He
 fights: real-time, positional, no twitch. Damage is visible and traceable. He can retreat. He
 goes down and gets back up at the Hold; he never loses the Hold.
 

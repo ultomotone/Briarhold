@@ -46,7 +46,13 @@
     "damage_number": "#fff1c8",
     "damage_number_backstrike": "#ffb24a",
     "arc_line": "#f4f1e6",
-    "whistle_ring": "#f2d98a"
+    "whistle_ring": "#f2d98a",
+    "gnome_cap": "#c8382c",
+    "gnome_tunic": "#3f5f8f",
+    "gnome_skin": "#e6b896",
+    "gnome_beard": "#f1ede4",
+    "gnome_boot": "#5a3a24",
+    "gnome_belt": "#2b241c"
   },
   "numbers": {
     "sun_energy_day": 1.25,

@@ -46,6 +46,7 @@ func forward() -> Vector3:
 	return Vector3(-sin(yaw), 0.0, -cos(yaw)).normalized()
 
 
+## Screen-right: forward x up. (It was the mirror of this; D walked left. Owner verdict 2026-09-02.)
 func right() -> Vector3:
 	var f: Vector3 = forward()
-	return Vector3(f.z, 0.0, -f.x)
+	return Vector3(-f.z, 0.0, f.x)

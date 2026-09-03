@@ -35,9 +35,17 @@ game's content, bind here too.
 
 Standing test: could a player who never read a design document work out what this does?
 
+## Verdicts in play
+
+- 2026-09-02: "D is move right, A is move left." The camera's right vector was mirrored; fixed.
+- 2026-09-02: "Change the main character to a gnome." Done: red cap, white beard, blue tunic,
+  boots, still the sword and the round shield. Code keeps the `knight` record name.
+- 2026-09-02: "Otherwise I am liking the direction so far. This is so cool." The slice's
+  direction is Keep.
+
 ## Keep — proven, protect it
 
-- (nothing yet; the first play session decides)
+- The direction of the slice (2026-09-02): gnome, sprigs, the Hold, the soft night.
 
 ## Watch — mixed signal, needs another look
 

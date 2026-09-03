@@ -31,7 +31,7 @@ func build(p: PaletteData, m: Main) -> void:
 	var name := UiKit.label(pal, "Briarhold", 54, 1.0, true)
 	name.add_theme_color_override("font_color", pal.col("hud_accent"))
 	_menu.add_child(name)
-	_menu.add_child(UiKit.label(pal, "A thumb-high knight. A kingdom gone to briar. Sprigs at your heel.", 14, 0.75))
+	_menu.add_child(UiKit.label(pal, "A thumb-high gnome. A kingdom gone to briar. Sprigs at your heel.", 14, 0.75))
 	_menu.add_child(UiKit.spacer(14.0))
 	var b_new := UiKit.button(pal, "New Hold")
 	b_new.pressed.connect(func() -> void: main.new_game())
