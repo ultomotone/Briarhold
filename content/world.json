@@ -47,7 +47,7 @@
     "follow_deadband": 1.7,
     "dismiss_arc_distance": 2.0,
     "dismiss_row_spacing": 0.32,
-    "follow_ring_gap": 0.16
+    "follow_ring_gap": 0.3
   },
   "carry": {
     "speed_min_mult": 0.3,
