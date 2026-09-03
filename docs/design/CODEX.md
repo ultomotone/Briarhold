@@ -80,6 +80,12 @@ farthest exposed sprigs first.
 
 ## 6. The Hold
 
+The Hold is a village that sprigs build and raiders attack (owner ask, 2026-09-02). Built things
+are tasks (power from many hands), made from carried stalks and kindling: palisade posts, a
+hearth, a hut, a lantern, later a workshop. Built things are obstacles and targets: the navmesh
+respects them, stalkers chew them, the morning tally lists the damage, and idle sprigs inside
+the ring rebuild and tend on their own. Defending the little place you built is the night.
+
 Origin. Radius 9 (the ring), safe radius 14. Holds shrines, the seedbed, the stock of relics, and
 (Arc 3) the workshop. The **Hold total** = seeds grown + relic value + felled×5 + gates×25 +
 heartroots×50. It is the score, the visible mark of time, and the threat driver.

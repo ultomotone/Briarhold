@@ -49,6 +49,11 @@ Standing test: could a player who never read a design document work out what thi
   the log says when a seed is kept inside because the field is full; the counts read "in the
   field N of cap", "inside shrines N", and each chip says "with you · in field · inside" in the
   same words. The shrine is the interface word for the monolith; "Onion" is Nintendo's.
+- 2026-09-02: "No way to get access to sprigs in reserve." Hold F beside a shrine hands them
+  back out one at a time while the field has room; the chip says how many are inside.
+- 2026-09-02: "Build the village, sprigs doing things around it, defend that little area at
+  night against monsters that go anywhere." Arc 1b on the roadmap: build tasks, the hearth,
+  standing village work, raiders that chew what you built, the hut.
 - 2026-09-02: "Hold Space to auto-throw, faster fights." Held Space repeats from 0.22 s at a
   cadence ramping to 0.15 s (Pikmin's throw cooldown).
 

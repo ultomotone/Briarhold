@@ -13,6 +13,9 @@ Source: the player profile and the commissioning conversation.
 - Caves where you never know what is in them (Morrowind). Burrows that re-roll.
 - Fast travel that is fine because the destination is worth it.
 - A score he can beat. A daily challenge. Ranking up, in a single-player world.
+- A village: sprigs building it, working around it on their own, and defending it at night
+  against marauders and animals that can go anywhere on the map. (2026-09-02, in play.)
+- Right-click access to sprigs held inside the shrine. (Done: hold F at a shrine.)
 - Territory he can lose. Something happening in a place: a boss, dense resources.
 - An economy worth accumulating in. Serious wealth. A bank of hundreds of things held for
   specific parts of the game.

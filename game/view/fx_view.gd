@@ -114,6 +114,8 @@ func handle(ev: Dictionary) -> void:
 			_puff(ev["to"], pal.col("shrine_glow"))
 		"seed":
 			_puff(ev["pos"] + Vector3(0.0, 2.3, 0.0), pal.col("sprig_" + str(ev["type"])).lightened(0.4))
+		"withdraw":
+			_puff(ev["pos"], pal.col("sprig_" + str(ev["type"])).lightened(0.4))
 		"stored":
 			_note("Field full (%d). Seed kept inside; a Heartroot widens the field." % int(ev["cap"]))
 		"enemy_felled":

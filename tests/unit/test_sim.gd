@@ -285,9 +285,10 @@ func test_cap_stores_excess_seeds() -> void:
 	var cmd := Commands.new()
 	_run(w, cmd, 2.0)
 	assert_eq(int(w.hold.stored.get("ember", 0)), 5)
+	# room appearing does not empty the reserve on its own; the shrine keeps them for him
 	w.hold.cap += 100
 	_run(w, cmd, 2.0)
-	assert_eq(int(w.hold.stored.get("ember", 0)), 0)
+	assert_eq(int(w.hold.stored.get("ember", 0)), 5)
 
 
 func test_carry_slots_face_first_claimant_and_fill_nearest() -> void:
@@ -388,6 +389,25 @@ func test_dismiss_lays_piles_by_type() -> void:
 			stone_c += s.pos / 3.0
 	assert_gt(SimWorld.flat_dist(ember_c, stone_c), 1.0)
 	assert_eq(w.squad_count(), 0)
+
+
+func test_hold_f_at_a_shrine_withdraws_stored() -> void:
+	var w := _world()
+	w.sprouts.clear()
+	w.hold.cap = 100
+	w.hold.store("ember", 4)
+	var sh: Entities.Shrine = w.shrines[0]
+	w.knight.pos = sh.pos + Vector3(2.0, 0.0, 0.0)
+	var cmd := Commands.new()
+	cmd.pluck_held = true
+	_run(w, cmd, 1.5)
+	assert_eq(int(w.hold.stored.get("ember", 0)), 0)
+	assert_eq(w.squad_count("ember"), 4)
+	# a full field keeps them inside
+	w.hold.store("ember", 2)
+	w.hold.cap = w.field_count()
+	_run(w, cmd, 1.0)
+	assert_eq(int(w.hold.stored.get("ember", 0)), 2)
 
 
 func test_no_engine_randomness_in_sim() -> void:

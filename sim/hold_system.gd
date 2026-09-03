@@ -14,9 +14,9 @@ static func step(w: SimWorld, dt: float) -> void:
 	while h.seed_timer >= SEED_INTERVAL:
 		h.seed_timer -= SEED_INTERVAL
 		if w.field_count() < h.cap:
+			# only queued seeds sprout on their own; what is kept inside stays inside until he
+			# asks for it at the shrine (SquadSystem._withdraw)
 			var t: String = h.pop_seed()
-			if t.is_empty():
-				t = h.take_stored()
 			if t.is_empty():
 				break
 			_plant(w, t)

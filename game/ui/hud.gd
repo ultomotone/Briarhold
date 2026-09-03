@@ -105,7 +105,7 @@ func build(p: PaletteData, t: ContentTables) -> void:
 	_log.add_theme_constant_override("shadow_offset_y", 1)
 	root.add_child(_log)
 	# bottom-right controls
-	_hint = UiKit.label(pal, "WASD move · right-click walk · left-click sword\nSpace throw · R whistle · X dismiss · C charge · Shift swarm\nQ / E type · F pluck · Z / V camera · Esc pause", 12, 0.6)
+	_hint = UiKit.label(pal, "WASD move · right-click walk · left-click sword\nSpace throw · R whistle · X dismiss · C charge · Shift swarm\nQ / E type · F pluck (at a shrine: take from inside) · Z / V camera · Esc pause", 12, 0.6)
 	_hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	_hint.anchor_left = 1.0
 	_hint.anchor_top = 1.0

@@ -95,6 +95,7 @@ static func _pluck(w: SimWorld, cmd: Commands, dt: float) -> void:
 			best_d = d
 			best = sp
 	if best == null:
+		_withdraw(w, dt)
 		return
 	if best_d > r:
 		# holding the key walks him to the next sprout in the patch, unless he is steering
@@ -112,6 +113,37 @@ static func _pluck(w: SimWorld, cmd: Commands, dt: float) -> void:
 	s.stun = 0.15
 	k.yaw = SimWorld.yaw_toward(k.pos, best.pos, k.yaw)
 	w.events.push("pluck", {"pos": best.pos, "type": best.type_id})
+	if w.squad_types().find(k.selected_type) < 0:
+		k.selected_type = best.type_id
+
+
+## Holding F beside a shrine with nothing left to pluck hands sprigs back out of storage, one
+## every pluck interval, while the field has room. They step out of the shrine's foot and fall in.
+static func _withdraw(w: SimWorld, dt: float) -> void:
+	var k: Entities.Knight = w.knight
+	var h: Hold = w.hold
+	var best: Entities.Shrine = null
+	var best_d: float = 3.2
+	for sh: Entities.Shrine in w.shrines:
+		if not sh.rooted or int(h.stored.get(sh.type_id, 0)) <= 0:
+			continue
+		var d: float = SimWorld.flat_dist(k.pos, sh.pos)
+		if d < best_d:
+			best_d = d
+			best = sh
+	if best == null:
+		return
+	if w.field_count() >= h.cap:
+		return
+	k.pluck_t += dt
+	if k.pluck_t < 0.25:
+		return
+	k.pluck_t = 0.0
+	h.stored[best.type_id] = int(h.stored[best.type_id]) - 1
+	var to: Vector3 = best.pos.lerp(k.pos, 0.35)
+	var s: Entities.Sprig = w.spawn_sprig(best.type_id, to, Entities.Sprig.State.FOLLOW, 0)
+	s.stun = 0.2
+	w.events.push("withdraw", {"pos": best.pos + Vector3(0.0, 2.3, 0.0), "to": to, "type": best.type_id, "left": int(h.stored[best.type_id])})
 	if w.squad_types().find(k.selected_type) < 0:
 		k.selected_type = best.type_id
 

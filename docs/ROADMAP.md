@@ -38,6 +38,20 @@ seconds of play.
 - [ ] S010 Minimap top-right: the field as a fog-of-war disc that fills in as he walks; shrines,
   Hold, known gates and mouths as marks.
 
+## Arc 1b — The village (owner ask, 2026-09-02: "build the village, defend that little area")
+
+- [ ] S010b Build tasks: a `task` object kind (power = Σ strength, a goal, speed above goal).
+  First build: a palisade post at the ring from three stalk bundles carried by sprigs; a built
+  post is an obstacle the navmesh respects and stalkers must go around or chew through.
+- [ ] S010c The hearth: the cairn becomes a hearth that sprigs feed with carried kindling; a fed
+  hearth widens the safe ring a little and lights it at night.
+- [ ] S010d Standing work at the Hold: dismissed sprigs inside the ring take village jobs on
+  their own (mend a post, tend the seedbed, stack stalks) and are visibly busy.
+- [ ] S010e Raiders target the village: stalkers chew posts and try to snuff the hearth; the
+  morning tally lists what was damaged; sprigs rebuild from the stack.
+- [ ] S010f The hut: a sprig-built hut beside the shrine; sprigs inside it at night are safe
+  and it is where inside-storage lives visibly (open the door: they pour out).
+
 ## Arc 2 — The squad, complete
 
 - [ ] S011 Lock-on: hold Tab to lock the nearest enemy; throws and charges resolve on it; the
