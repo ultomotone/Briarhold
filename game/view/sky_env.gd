@@ -22,15 +22,20 @@ func build(p: PaletteData) -> void:
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	e.ambient_light_sky_contribution = 0.85
+	e.ambient_light_sky_contribution = 0.55
+	# the palette's greens were coming out as mud: the grey sky ambient plus the filmic curve
+	# desaturate everything. Pull the saturation back up in the final grade.
+	e.adjustment_enabled = true
+	e.adjustment_saturation = 1.2
+	e.adjustment_contrast = 1.06
 	e.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	e.tonemap_exposure = 1.0
-	e.tonemap_white = 1.2
+	e.tonemap_white = 4.0
 	e.fog_enabled = true
 	e.fog_mode = Environment.FOG_MODE_EXPONENTIAL
-	e.fog_sky_affect = 0.55
-	e.fog_aerial_perspective = 0.6
+	e.fog_sky_affect = 0.35
+	e.fog_aerial_perspective = 0.3
 	e.volumetric_fog_enabled = true
 	e.volumetric_fog_density = 0.012
 	e.volumetric_fog_anisotropy = 0.55

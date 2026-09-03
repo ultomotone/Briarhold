@@ -49,9 +49,9 @@
     "whistle_ring": "#f2d98a"
   },
   "numbers": {
-    "sun_energy_day": 2.1,
+    "sun_energy_day": 1.25,
     "sun_energy_night": 0.12,
-    "ambient_energy_day": 0.75,
+    "ambient_energy_day": 0.5,
     "ambient_energy_night": 0.18,
     "fog_density_day": 0.005,
     "fog_density_night": 0.014,

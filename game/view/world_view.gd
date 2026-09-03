@@ -102,8 +102,8 @@ func _build_plants(w: SimWorld) -> void:
 	mm.use_colors = true
 	mm.mesh = mesh
 	mm.instance_count = w.plants.size()
-	var leaf: Color = pal.col("scatter_leaf")
-	var stalk: Color = pal.col("scatter_stalk")
+	var leaf: Color = pal.col("scatter_leaf").srgb_to_linear()
+	var stalk: Color = pal.col("scatter_stalk").srgb_to_linear()
 	for i: int in w.plants.size():
 		var pl: Dictionary = w.plants[i]
 		var c: Vector3 = pl["pos"]
@@ -120,7 +120,6 @@ func _build_plants(w: SimWorld) -> void:
 	_plants.multimesh = mm
 	var mat := StandardMaterial3D.new()
 	mat.vertex_color_use_as_albedo = true
-	mat.vertex_color_is_srgb = true
 	mat.roughness = 0.95
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_plants.material_override = mat

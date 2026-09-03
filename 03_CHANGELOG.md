@@ -31,8 +31,12 @@ delta on load.
   makes 57 tests possible with no display and what makes the save contract enforceable.
 - Held F walks him to the next sprout: standing still and mashing a key at a ring of sprouts was
   the first thing the tests said felt wrong.
-- Vertex colours marked sRGB: the first render was grey mud because sRGB palette values were read
-  as linear. `vertex_color_is_srgb = true` on the terrain and plants.
+- The terrain was not rendering at all for the first six shots: every ground triangle was wound
+  counter-clockwise, and Godot's front faces wind clockwise, so the whole field was back-face
+  culled and the grey "ground" was the procedural sky's lower hemisphere. Found by painting the
+  sky ground magenta. Lesson, recorded: when a colour will not change no matter what you tune,
+  check that the thing is on screen before tuning it again. The ground is now coloured in a small
+  shader from world height and slope with the palette as uniforms.
 - Sprig parts picked by height in the shader, not by vertex colour, because MultiMesh multiplies
   vertex colour into the instance colour and Stone sprigs came out red.
 - The soft night over Pikmin's hard sunset: his profile wants to lose something, not everything,
