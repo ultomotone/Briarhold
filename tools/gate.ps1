@@ -71,7 +71,7 @@ if (-not $NoShot) {
 # 5. export (weekly; needs templates in %APPDATA%\Godot\export_templates\4.7.2.stable)
 if ($Export) {
   New-Item -ItemType Directory -Force -Path "$repo\build" | Out-Null
-  $r = Run "export" @("--headless","--path",".","--export-release","Windows Desktop","build/Briarhold.exe") "logs\export.log"
+  $r = Run "export" @("--headless","--path",".","--export-release","`"Windows Desktop`"","build/Briarhold.exe") "logs\export.log"
   $exe = Get-Item "build\Briarhold.exe" -ErrorAction SilentlyContinue
   if (-not $exe -or $exe.Length -lt 20MB -or $r.errs -gt 0) { Write-Host "GATE 1 export failed"; exit 1 }
   Write-Host ("export: {0} MB" -f [math]::Round($exe.Length / 1MB))
