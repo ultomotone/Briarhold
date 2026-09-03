@@ -6,7 +6,7 @@
   "hold_safe_radius": 14.0,
   "terrain_amplitude": 5.5,
   "terrain_frequency": 0.028,
-  "field_cap_start": 20,
+  "field_cap_start": 40,
   "field_cap_per_heartroot": 10,
   "day_seconds": 900.0,
   "night_seconds": 360.0,
@@ -40,9 +40,9 @@
     "separation_radius": 0.42,
     "whistle_reach": 8.0,
     "throw_grab_radius": 5.4,
-    "throw_repeat_start": 0.5,
-    "throw_repeat_min": 0.18,
-    "throw_repeat_ramp": 1.0,
+    "throw_repeat_start": 0.22,
+    "throw_repeat_min": 0.15,
+    "throw_repeat_ramp": 0.8,
     "chase_range": 8.0,
     "follow_deadband": 1.7,
     "dismiss_arc_distance": 2.0,
@@ -62,7 +62,8 @@
     "seed_scatter_radius": 3.5,
     "stage_seconds_1": 120.0,
     "stage_seconds_2": 120.0,
-    "stage_seconds_3": 180.0
+    "stage_seconds_3": 180.0,
+    "absorb_seconds": 0.9
   },
   "trial": {
     "plot_radius": 46.0,

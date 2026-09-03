@@ -1,5 +1,17 @@
 # CHANGELOG — decisions with reasoning, newest first
 
+## 2026-09-02 — S000c: first play feedback (owner-present session)
+
+A and D were mirrored (camera right vector was forward x up flipped); fixed. The character is a
+gnome by verdict: cap, beard, nose, tunic, boots, sword and shield. Delivery now goes to the
+shrine of the carriers' type and the load is drawn up into it over 0.9 s, seeds puff from the
+top and arc down to root; when the field is full the log says so. The starting cap goes from
+20 to 40 because the world starts with 17 sprouts and the old cap was full after two pellets,
+which read as "nothing happens." Counts on the layout use one vocabulary: in the field, of cap,
+inside shrines, with you. Held Space auto-throws from 0.22 s, ramping to 0.15 s.
+
+**Gate.** import · check · 64 tests · shots read.
+
 ## 2026-09-02 — S000b: the Pikifen pass (owner-present session)
 
 **What changed.** Four read-only studies of Pikifen's source (MIT), re-derived at our scale and

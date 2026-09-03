@@ -109,6 +109,13 @@ func handle(ev: Dictionary) -> void:
 			_note("%s sprig %s" % [_cap(str(ev["type"])), str(ev["cause"])])
 		"delivered":
 			_note(str(ev["text"]))
+			_puff(ev["pos"] + Vector3(0.0, 0.6, 0.0), Color(1.0, 0.95, 0.7, 0.9))
+		"absorb":
+			_puff(ev["to"], pal.col("shrine_glow"))
+		"seed":
+			_puff(ev["pos"] + Vector3(0.0, 2.3, 0.0), pal.col("sprig_" + str(ev["type"])).lightened(0.4))
+		"stored":
+			_note("Field full (%d). Seed kept inside; a Heartroot widens the field." % int(ev["cap"]))
 		"enemy_felled":
 			_note("Felled: " + _cap(str(ev["type"]).replace("_", " ")))
 		"gate_opened":
@@ -127,7 +134,7 @@ func handle(ev: Dictionary) -> void:
 			_note(_cap(str(ev["type"])) + " shrine rooted at the Hold")
 		"offline":
 			_note("While away: %d nights, %d lost, %d matured" % [int(ev["nights"]), int(ev["lost"]), int(ev["matured"])])
-		"pluck", "throw", "whistle", "seed", "rooted", "matured", "status", "telegraph", "shake", "bite", "dismiss", "charge", "enemy_woke", "lost_follow", "knight_up", "dawn":
+		"pluck", "throw", "whistle", "rooted", "matured", "status", "telegraph", "shake", "bite", "dismiss", "charge", "enemy_woke", "lost_follow", "knight_up", "dawn":
 			pass
 
 

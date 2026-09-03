@@ -26,6 +26,7 @@ static func step(w: SimWorld, dt: float) -> void:
 				break
 			h.store(t)
 			h.seeds_grown += 1
+			w.events.push("stored", {"type": t, "inside": h.stored_total(), "cap": h.cap})
 	for sp: Entities.Sprout in w.sprouts:
 		if sp.fl_t >= 0.0:
 			sp.fl_t += dt

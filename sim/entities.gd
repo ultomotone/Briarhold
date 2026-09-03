@@ -104,6 +104,11 @@ class WorldObject:
 	var path: PackedVector3Array = []
 	var path_i: int = 0
 	var path_gen: int = -1
+	var dest_type: String = "" # which shrine the path was built for ("" = the Hold centre)
+	## Delivery: the load is drawn up into the shrine over absorb_seconds, then becomes seeds.
+	var absorb_t: float = -1.0 # <0 not delivering
+	var absorb_to: Vector3 = Vector3.ZERO
+	var absorb_type: String = ""
 	var taken: bool = false
 	var seed_id: String = "" # world-gen identity for the save's deltas; "" = spawned in play
 

@@ -63,20 +63,40 @@ static func anchor_point(o: Entities.WorldObject, anchor: int, total: int) -> Ve
 	return o.pos + Vector3(sin(ang), 0.0, cos(ang)) * (o.radius + 0.28)
 
 
+## Seeds go to the shrine of the carriers' majority type; relics and heartroots to the Hold's
+## centre; a new shrine to its own spoke of the clearing.
 static func destination(w: SimWorld, o: Entities.WorldObject) -> Vector3:
 	if o.kind == "shrine":
-		# a new shrine roots beside the others, on its own spoke of the clearing
 		var i: int = w.shrines.size()
 		var ang: float = -0.6 + float(i) * 1.1
 		return w.ground(w.hold.pos + Vector3(sin(ang), 0.0, cos(ang)) * 5.5)
+	if o.kind == "pellet" or o.kind == "corpse":
+		var sh: Entities.Shrine = w.shrine_for(o.dest_type)
+		if sh != null:
+			return sh.pos
 	return w.ground(w.hold.pos)
+
+
+static func arrive_radius(w: SimWorld, o: Entities.WorldObject) -> float:
+	if (o.kind == "pellet" or o.kind == "corpse") and w.shrine_for(o.dest_type) != null:
+		return 1.6 + o.radius
+	return w.hold.radius * 0.45
 
 
 static func step(w: SimWorld, dt: float) -> void:
 	var c: ContentTables = w.content
+	var absorb: float = c.wn("sprout", "absorb_seconds", 0.9)
 	for j: Entities.CarryJob in w.jobs:
 		var o: Entities.WorldObject = w.object_by_id(j.object_id)
 		if o == null:
+			continue
+		if o.absorb_t >= 0.0:
+			# drawn up into the shrine, then it is seeds
+			o.absorb_t += dt
+			var u: float = clampf(o.absorb_t / absorb, 0.0, 1.0)
+			o.pos = o.pos.lerp(o.absorb_to, u * u)
+			if o.absorb_t >= absorb:
+				_finish(w, o)
 			continue
 		j.carriers = o.carriers
 		# carriers walk to their spots; only the ones on a spot lift
@@ -104,8 +124,11 @@ static func step(w: SimWorld, dt: float) -> void:
 		j.moving = strength >= o.weight
 		if not j.moving:
 			continue
-		# path to the Hold, re-requested when the walkable set changed
-		if o.path.is_empty() or o.path_gen != w.paths.generation:
+		# path to the shrine of the majority type (or the Hold), re-requested when the walkable
+		# set changed or the majority changed hands
+		var maj: String = majority_type(w, o)
+		if o.path.is_empty() or o.path_gen != w.paths.generation or maj != o.dest_type:
+			o.dest_type = maj
 			o.path = w.paths.path(o.pos, destination(w, o))
 			o.path_i = 1
 			o.path_gen = w.paths.generation
@@ -127,7 +150,7 @@ static func step(w: SimWorld, dt: float) -> void:
 			heading = SimWorld.yaw_toward(Vector3.ZERO, to, o.yaw)
 		# the ring turns with the heading, so the front carriers stay in front
 		o.yaw = lerp_angle(o.yaw, heading, clampf(dt * 3.0, 0.0, 1.0))
-		if o.kind != "shrine" and w.hold.in_hold(o.pos) and SimWorld.flat_dist(o.pos, w.hold.pos) < w.hold.radius * 0.45:
+		if o.kind != "shrine" and SimWorld.flat_dist(o.pos, destination(w, o)) <= arrive_radius(w, o):
 			_deliver(w, j, o)
 
 
@@ -152,10 +175,32 @@ static func majority_type(w: SimWorld, o: Entities.WorldObject) -> String:
 	return best
 
 
+## Arrival: the carriers set it down and step back; the load is drawn into the shrine (or, for
+## relics, heartroots, and shrines, taken at once).
 static func _deliver(w: SimWorld, _j: Entities.CarryJob, o: Entities.WorldObject) -> void:
-	var h: Hold = w.hold
+	o.absorb_type = majority_type(w, o)
 	var carriers: PackedInt32Array = o.carriers.duplicate()
-	var maj: String = majority_type(w, o)
+	var i: int = 0
+	for sid: int in carriers:
+		var s: Entities.Sprig = w.sprig_by_id(sid)
+		if s == null:
+			continue
+		w.set_state(s, Entities.Sprig.State.IDLE)
+		var ang: float = float(i) / float(maxi(1, carriers.size())) * TAU
+		s.charge_target = w.ground(o.pos + Vector3(sin(ang), 0.0, cos(ang)) * 1.8)
+		i += 1
+	var sh: Entities.Shrine = w.shrine_for(o.absorb_type) if (o.kind == "pellet" or o.kind == "corpse") else null
+	if sh != null:
+		o.absorb_t = 0.0
+		o.absorb_to = sh.pos + Vector3(0.0, 2.4, 0.0)
+		w.events.push("absorb", {"pos": o.pos, "to": o.absorb_to, "type": o.absorb_type, "kind": o.kind})
+		return
+	_finish(w, o)
+
+
+static func _finish(w: SimWorld, o: Entities.WorldObject) -> void:
+	var h: Hold = w.hold
+	var maj: String = o.absorb_type if not o.absorb_type.is_empty() else majority_type(w, o)
 	var seeds: int = 0
 	var text: String = ""
 	match o.kind:
@@ -182,20 +227,13 @@ static func _deliver(w: SimWorld, _j: Entities.CarryJob, o: Entities.WorldObject
 			text = "%s rooted" % o.name
 			w.events.push("shrine_rooted", {"pos": sh.pos, "type": sh.type_id})
 	if seeds > 0:
+		var room: int = maxi(0, h.cap - w.field_count() - h.queued())
 		h.queue_seeds(maj, seeds)
+		if room < seeds:
+			text += " (%d kept inside: field full)" % (seeds - room)
 	o.taken = true
 	if not o.seed_id.is_empty():
 		var taken: PackedStringArray = w.deltas["taken"]
 		taken.append(o.seed_id)
 		w.deltas["taken"] = taken
-	# the carriers set it down and wait at the Hold
-	var i: int = 0
-	for sid: int in carriers:
-		var s: Entities.Sprig = w.sprig_by_id(sid)
-		if s == null:
-			continue
-		w.set_state(s, Entities.Sprig.State.IDLE)
-		var ang: float = float(i) / float(maxi(1, carriers.size())) * TAU
-		s.charge_target = w.ground(o.pos + Vector3(sin(ang), 0.0, cos(ang)) * 1.6)
-		i += 1
 	w.events.push("delivered", {"pos": o.pos, "text": text, "kind": o.kind, "seeds": seeds, "type": maj})

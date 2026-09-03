@@ -228,6 +228,14 @@ func _sync_objects(w: SimWorld, alpha: float) -> void:
 			n = _make_object(o)
 			_objects[o.id] = n
 		var p: Vector3 = o.prev.lerp(o.pos, alpha)
+		if o.absorb_t >= 0.0:
+			# drawn up into the shrine: rises, spins, shrinks
+			var u: float = clampf(o.absorb_t / 0.9, 0.0, 1.0)
+			n.position = p
+			n.rotation.y = o.yaw + u * 9.0
+			n.scale = Vector3.ONE * maxf(0.05, 1.0 - u * u)
+			continue
+		n.scale = Vector3.ONE
 		n.position = p + Vector3(0.0, 0.18 if o.carriers.size() > 0 else 0.0, 0.0)
 		n.rotation.y = o.yaw
 	for id: Variant in _objects.keys():

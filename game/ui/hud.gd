@@ -172,7 +172,7 @@ func update(w: SimWorld, notes: Array[String], cursor: Vector3) -> void:
 	fill.bg_color = pal.col("hud_accent") if not w.clock.is_night() else pal.col("sprig_frost")
 	_hp.value = w.knight.hp / maxf(1.0, w.knight.max_hp)
 	_total.text = str(w.hold.total())
-	_field.text = "Field %d / %d   Inside %d" % [w.field_count(), w.hold.cap, w.hold.stored_total()]
+	_field.text = "In the field %d of %d   Inside shrines %d" % [w.field_count(), w.hold.cap, w.hold.stored_total()]
 	_relics.text = "Relics %d   Value %d" % [w.hold.relics_banked, w.hold.value]
 	_lost.text = "Lost tonight %d   Lost ever %d" % [w.lost_tonight, w.lost_total]
 	_sync_chips(w)
@@ -201,7 +201,8 @@ func _sync_chips(w: SimWorld) -> void:
 			_chip_nodes[id] = _make_chip(id)
 		var d: Dictionary = _chip_nodes[id]
 		var count: Label = d["count"]
-		count.text = "%d / %d" % [following, n]
+		var inside: int = int(w.hold.stored.get(id, 0))
+		count.text = "%d with you · %d in field · %d inside" % [following, n, inside]
 		var pn: PanelContainer = d["panel"]
 		var sb: StyleBoxFlat = pn.get_theme_stylebox("panel")
 		var selected: bool = id == w.knight.selected_type
@@ -232,7 +233,7 @@ func _make_chip(id: String) -> Dictionary:
 	v.add_theme_constant_override("separation", 0)
 	h.add_child(v)
 	v.add_child(UiKit.label(pal, t.name, 13, 1.0, true))
-	var count := UiKit.label(pal, "0 / 0", 12, 0.75)
+	var count := UiKit.label(pal, "0 with you · 0 in field · 0 inside", 12, 0.75)
 	v.add_child(count)
 	_chips.add_child(pn)
 	return {"panel": pn, "count": count}

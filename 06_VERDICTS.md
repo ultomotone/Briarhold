@@ -42,6 +42,15 @@ Standing test: could a player who never read a design document work out what thi
   boots, still the sword and the round shield. Code keeps the `knight` record name.
 - 2026-09-02: "Otherwise I am liking the direction so far. This is so cool." The slice's
   direction is Keep.
+- 2026-09-02: "Bringing pellets back and nothing happens; no animation from the monolith; the
+  counts don't match." Cause: the field cap (20) was already nearly full from the starting
+  sprouts, so seeds went inside the shrine silently. Fixed: cap starts at 40; loads now carry to
+  the shrine of their type and are drawn up into it, seeds puff out of the top and arc down;
+  the log says when a seed is kept inside because the field is full; the counts read "in the
+  field N of cap", "inside shrines N", and each chip says "with you · in field · inside" in the
+  same words. The shrine is the interface word for the monolith; "Onion" is Nintendo's.
+- 2026-09-02: "Hold Space to auto-throw, faster fights." Held Space repeats from 0.22 s at a
+  cadence ramping to 0.15 s (Pikmin's throw cooldown).
 
 ## Keep — proven, protect it
 
