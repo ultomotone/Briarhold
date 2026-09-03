@@ -1,0 +1,26 @@
+{
+	"schemaVersion": 1,
+	"key": "briarhold:save",
+	"name": "Briarhold",
+	"seed": 7,
+	"saved_at": 1756800000,
+	"day": 2,
+	"clock_time": 412.5,
+	"knight": {"x": 3.2, "z": -1.4, "yaw": 0.8, "hp": 88.0, "selected": "ember"},
+	"hold": {"cap": 30, "value": 25, "stock": {"relic_button": 1}, "stored": {"ember": 3}, "queue": [{"type": "ember", "count": 2}], "seeds_grown": 21, "felled": 1, "relics_banked": 1, "gates_opened": 0, "heartroots": 1},
+	"sprigs": [
+		{"t": "ember", "x": 2.1, "z": -0.5, "m": 2, "st": "follow"},
+		{"t": "ember", "x": 2.6, "z": -0.9, "m": 1, "st": "follow"},
+		{"t": "stone", "x": 4.0, "z": 1.2, "m": 0, "st": "idle"}
+	],
+	"sprouts": [
+		{"t": "ember", "x": 6.5, "z": -2.2, "age": 40.0, "m": 0},
+		{"t": "stone", "x": 1.9, "z": 4.6, "age": 300.0, "m": 2}
+	],
+	"shrines": [
+		{"t": "ember", "x": 5.5, "z": -3.0},
+		{"t": "stone", "x": 3.1, "z": 4.5}
+	],
+	"deltas": {"taken": ["pellet:0", "pellet:3", "relic:button", "pocket:heartroot"], "felled": ["grub:1"], "opened": ["gate:1"], "rooted": ["stone"]},
+	"lost_total": 4
+}

@@ -1,0 +1,25 @@
+{
+  "_doc": "Bestiary. All numbers deterministic: no hit chance, no damage rolls. bite_count = sprigs eaten per bite; telegraph_seconds = visible wind-up before the bite lands; itch_damage = damage taken before it shakes attackers off; seeds = shrine seeds when the corpse is carried home. sleeps_by_day: dormant until the knight or a sprig enters wake_radius. night: spawns only at night, retreats at dawn.",
+  "enemies": [
+    {
+      "id": "grub", "name": "Bulb Grub", "colour_key": "enemy_grub",
+      "hp": 750.0, "speed": 2.4, "radius": 0.9, "height": 1.1,
+      "attack": "bite", "bite_count": 3, "bite_reach": 1.4, "damage_to_knight": 18.0,
+      "telegraph_seconds": 0.75, "attack_cooldown": 1.6,
+      "itch_damage": 120.0, "shake_stun_seconds": 0.6,
+      "wake_radius": 6.5, "leash_radius": 14.0, "sleeps_by_day": true, "night": false,
+      "weight": 10, "max_carriers": 20, "seeds": 10, "value": 0,
+      "line": "Sleeps in the open. Wakes hungry. Three sprigs a bite. Throw onto its back; pull off when it shakes."
+    },
+    {
+      "id": "night_stalker", "name": "Dusk Stalker", "colour_key": "enemy_night",
+      "hp": 320.0, "speed": 3.6, "radius": 0.6, "height": 0.9,
+      "attack": "bite", "bite_count": 1, "bite_reach": 1.1, "damage_to_knight": 10.0,
+      "telegraph_seconds": 0.45, "attack_cooldown": 1.1,
+      "itch_damage": 60.0, "shake_stun_seconds": 0.4,
+      "wake_radius": 30.0, "leash_radius": 80.0, "sleeps_by_day": false, "night": true,
+      "weight": 4, "max_carriers": 8, "seeds": 4, "value": 0,
+      "line": "Comes at dusk, in twos and threes, for whatever is left in the field. Gone at dawn."
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "_doc": "Carriable things. weight = strength needed to move; max_carriers = most sprigs that can hold it (2x weight by rule). Pellets seed the shrine (seeds_match if the carriers' majority type matches the pellet, else seeds_other). Relics bank value at the Hold. Heartroots raise the field cap.",
+  "objects": [
+    { "id": "pellet_1", "name": "Pellet", "kind": "pellet", "weight": 1, "max_carriers": 2, "seeds_match": 2, "seeds_other": 1, "value": 0, "radius": 0.35 },
+    { "id": "pellet_5", "name": "Pellet, five", "kind": "pellet", "weight": 5, "max_carriers": 10, "seeds_match": 5, "seeds_other": 3, "value": 0, "radius": 0.55 },
+    { "id": "pellet_10", "name": "Pellet, ten", "kind": "pellet", "weight": 10, "max_carriers": 20, "seeds_match": 10, "seeds_other": 5, "value": 0, "radius": 0.75 },
+    { "id": "pellet_20", "name": "Pellet, twenty", "kind": "pellet", "weight": 20, "max_carriers": 40, "seeds_match": 20, "seeds_other": 10, "value": 0, "radius": 0.95 },
+    { "id": "relic_thimble", "name": "Brass Thimble", "kind": "relic", "weight": 6, "max_carriers": 12, "seeds_match": 0, "seeds_other": 0, "value": 60, "radius": 0.6, "set": "sewing" },
+    { "id": "relic_button", "name": "Horn Button", "kind": "relic", "weight": 3, "max_carriers": 6, "seeds_match": 0, "seeds_other": 0, "value": 25, "radius": 0.5, "set": "sewing" },
+    { "id": "relic_key", "name": "Iron Key", "kind": "relic", "weight": 8, "max_carriers": 16, "seeds_match": 0, "seeds_other": 0, "value": 90, "radius": 0.7, "set": "locks" },
+    { "id": "heartroot", "name": "Heartroot", "kind": "heartroot", "weight": 10, "max_carriers": 20, "seeds_match": 0, "seeds_other": 0, "value": 0, "radius": 0.7 }
+  ]
+}

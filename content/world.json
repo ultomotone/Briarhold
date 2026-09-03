@@ -1,0 +1,56 @@
+{
+  "_doc": "World-shape and rule numbers. Units: the knight is 1.0 tall; the field is size x size centred on the Hold at the origin. Times in seconds of real play.",
+  "size": 160.0,
+  "bound": 74.0,
+  "hold_radius": 9.0,
+  "hold_safe_radius": 14.0,
+  "terrain_amplitude": 5.5,
+  "terrain_frequency": 0.028,
+  "field_cap_start": 20,
+  "field_cap_per_heartroot": 10,
+  "day_seconds": 900.0,
+  "night_seconds": 360.0,
+  "dusk_warning_seconds": 90.0,
+  "offline_cap_days": 7,
+  "knight": {
+    "hp": 100.0,
+    "speed": 5.2,
+    "sword_damage": 12.0,
+    "swing_seconds": 0.44,
+    "contact_at": 0.17,
+    "reach": 1.35,
+    "arc_rad": 0.9,
+    "backstrike_mult": 1.55,
+    "regen_after": 5.0,
+    "regen_per_sec": 3.4
+  },
+  "squad": {
+    "follow_ring_base": 1.1,
+    "follow_ring_step": 0.55,
+    "follow_per_ring": 7,
+    "whistle_grow_seconds": 1.8,
+    "whistle_max_radius": 6.0,
+    "whistle_min_radius": 1.2,
+    "idle_task_radius": 3.0,
+    "leash_radius": 18.0,
+    "throw_flight_seconds": 0.62,
+    "throw_gravity": 22.0,
+    "pluck_radius": 1.6,
+    "pluck_seek_radius": 5.0,
+    "swarm_speed_mult": 1.15,
+    "charge_speed_mult": 1.6,
+    "separation_radius": 0.42
+  },
+  "carry": {
+    "speed_min_mult": 0.3,
+    "speed_max_mult": 0.8,
+    "base_speed": 2.6
+  },
+  "sprout": {
+    "stage_seconds": 120.0,
+    "bud_speed_mult": 1.1,
+    "bloom_speed_mult": 1.2,
+    "seed_flight_seconds": 0.9,
+    "seed_scatter_radius": 3.5
+  }
+}

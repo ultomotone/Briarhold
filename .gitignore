@@ -1,0 +1,5 @@
+.godot/
+logs/
+build/
+*.tmp
+dev-save.json

@@ -1,0 +1,1 @@
+Briarhold exists: a knight, an Ember shrine, pellets, three sleeping grubs, a fire vent, a bramble gate, and a night that comes for whatever you leave outside the ring. Double-click Play Briarhold.cmd, New Hold, hold F at the sprouts, then throw them (Space) at the pellet by the ring and watch it come home.
