@@ -111,7 +111,7 @@ func build(p: PaletteData, t: ContentTables) -> void:
 	_hint.anchor_top = 1.0
 	_hint.anchor_right = 1.0
 	_hint.anchor_bottom = 1.0
-	_hint.offset_left = -420.0
+	_hint.offset_left = -620.0
 	_hint.offset_top = -80.0
 	_hint.offset_right = -20.0
 	_hint.offset_bottom = -20.0
