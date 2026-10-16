@@ -9,6 +9,12 @@ New-Item -ItemType Directory -Force -Path "$repo\logs" | Out-Null
 
 function Find-Godot {
   if ($env:GODOT -and (Test-Path $env:GODOT)) { return $env:GODOT }
+  # the project runs on Godot 4.8 (owner ruling 2026-10-16), installed beside 4.7.2 in Tools
+  $tools = Get-ChildItem "$env:USERPROFILE\Tools" -Directory -Filter "Godot-4.8*" -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
+  if ($tools) {
+    $c = Get-ChildItem $tools.FullName -Filter "Godot_v4*_console.exe" | Select-Object -First 1
+    if ($c) { return $c.FullName }
+  }
   $pk = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Directory -Filter "GodotEngine.GodotEngine_*" -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($pk) {
     $c = Get-ChildItem $pk.FullName -Filter "Godot_v4*_console.exe" | Select-Object -First 1
@@ -68,7 +74,7 @@ if (-not $NoShot) {
   if ($p.ExitCode -ne 0 -or $errs.Count -gt 0 -or -not (Test-Path "logs\latest-desktop.png")) { Write-Host "GATE 1 shot failed"; exit 1 }
 }
 
-# 5. export (weekly; needs templates in %APPDATA%\Godot\export_templates\4.7.2.stable)
+# 5. export (weekly; needs the matching templates in %APPDATA%\Godot\export_templates\<version>)
 if ($Export) {
   New-Item -ItemType Directory -Force -Path "$repo\build" | Out-Null
   $r = Run "export" @("--headless","--path",".","--export-release","`"Windows Desktop`"","build/Briarhold.exe") "logs\export.log"

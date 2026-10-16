@@ -2,13 +2,18 @@
 
 A thumb-high gnome. A kingdom gone to briar. Sprigs at your heel.
 
-An original creature-commander built for one player. Godot 4.7, GDScript, a pure deterministic
+An original creature-commander built for one player. Godot 4.8 (beta), GDScript, a pure deterministic
 simulation under a view, every number in JSON, one increment per scheduled build.
 
 ## Play
 
-Install Godot 4.7.2 (`winget install GodotEngine.GodotEngine`) and double-click
-`Play Briarhold.cmd`. No export needed; a green tree is playable.
+The project runs on Godot 4.8 beta 1. It is not on winget yet: download
+`Godot_v4.8-beta1_win64.exe.zip` from https://github.com/godotengine/godot-builds/releases/tag/4.8-beta1
+and unzip it to `%USERPROFILE%\Tools\Godot-4.8-beta1`. The launchers and the gate find it there and
+fall back to a winget 4.7.2 (`winget install GodotEngine.GodotEngine`), which still passes the gate.
+
+Double-click `Play Briarhold.cmd` to play from source, or `Edit in Godot.cmd` to open the editor.
+No export needed; a green tree is playable.
 
 ## Develop
 

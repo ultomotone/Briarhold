@@ -1,5 +1,16 @@
 # CHANGELOG — decisions with reasoning, newest first
 
+## 2026-10-16 — Godot 4.8 beta 1 (owner ruling)
+
+The engine moves from 4.7.2 to 4.8 beta 1 at his request. Installed side by side from the
+official godot-builds release with the SHA-512 checked, not over 4.7.2. The whole gate ran on the
+beta before anything changed: import, typecheck, 68 tests, five screenshots, all green, no new
+warnings, renders identical. Then the defaults moved: `tools/gate.ps1` and both launchers prefer
+`%USERPROFILE%\Tools\Godot-4.8*` and fall back to winget's 4.7.2; `project.godot` declares 4.8;
+the 4.8 Windows export templates are installed. New: `Edit in Godot.cmd` opens the editor on 4.8.
+Beta risk is accepted by the owner; if a beta breaks the gate, the fallback is one env var
+(`$env:GODOT`) away and the code is unchanged.
+
 ## 2026-09-02 — S000d: the wider field and life on a clock (owner-present session)
 
 He emptied the field in ten minutes and asked for more map and things that happen. The field

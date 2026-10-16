@@ -6,7 +6,9 @@ lives above this layer; read "What is yours" before you conclude you have been f
 
 ## 0. The chassis
 
-- **Godot 4.7, GDScript with static typing, Forward+ renderer, Windows desktop first.** Mobile
+- **Godot 4.8 (beta 1 as of 2026-10-16, owner ruling; 4.7.2 kept installed as the fallback and
+  still green), GDScript with static typing, Forward+ renderer, Windows desktop first.** Move to
+  each 4.8 beta/RC and the stable release as they land, gate first. Mobile
   later through Godot's Mobile renderer; web is not a goal. Materials stay StandardMaterial3D
   plus the one sprig shader so the renderer switch stays a setting.
 - **The sim is pure.** `sim/` is RefCounted classes stepped once per physics tick by

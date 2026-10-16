@@ -18,7 +18,7 @@ has a home here (see `docs/design/CODEX.md` §2); Nintendo's names, art, and cod
 ## Read order, non-negotiable
 
 1. `00_MASTER_INSTRUCTIONS.md` — the contract.
-2. `08_FOUNDATION.md` — the fixed chassis. Godot 4.7, GDScript, the pure sim under a view, the
+2. `08_FOUNDATION.md` — the fixed chassis. Godot 4.8 (beta 1), GDScript, the pure sim under a view, the
    knight, the squad, the Hold, the soft day. Settled. Never reinvent this layer.
 3. `05_PLAYER_PROFILE.md` — his answered preferences. Binding on quality, silent on content.
 4. `02_SAVE_SCHEMA.md` — the save contract. Breaking it is the only unforgivable bug.

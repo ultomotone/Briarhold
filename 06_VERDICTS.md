@@ -70,6 +70,11 @@ Standing test: could a player who never read a design document work out what thi
 - 2026-09-02: "Hold Space to auto-throw, faster fights." Held Space repeats from 0.22 s at a
   cadence ramping to 0.15 s (Pikmin's throw cooldown).
 
+- 2026-10-16: "Can we switch to the 4.8 beta?" Done through the owner gate: Godot 4.8 beta 1
+  installed beside 4.7.2 in `%USERPROFILE%\Tools\Godot-4.8-beta1`, checksum verified; the gate
+  passed on it unchanged (68 tests, five shots, no new warnings, identical renders). The gate,
+  launchers, feature tag, and export templates now default to 4.8; 4.7.2 stays as the fallback.
+
 ## Keep — proven, protect it
 
 - The direction of the slice (2026-09-02): gnome, sprigs, the Hold, the soft night.
