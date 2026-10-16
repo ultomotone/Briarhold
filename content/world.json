@@ -97,5 +97,14 @@
   "thorn": {
     "_doc": "A Thorn sprig that gets eaten poisons the eater for poison_damage.",
     "poison_damage": 150.0
+  },
+  "beasts": {
+    "_doc": "How many of each creature the field starts with, and the dawn: with beast_chance one more of a random kind wanders in.",
+    "cinder_hog": 3,
+    "pounce_toad": 4,
+    "shellback": 3,
+    "gale_puff": 4,
+    "hollow_mole": 3,
+    "beast_chance": 0.6
   }
 }

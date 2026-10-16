@@ -50,6 +50,18 @@ func test_randi_range_inclusive() -> void:
 	assert_eq(seen.size(), 3)
 
 
+## Regression (2026-10-16): randi_range, randf_range and pick_weighted called a bare randf(),
+## which inside this class is the engine's global randf(). Same name, same sequence, always.
+func test_every_draw_kind_is_reproducible() -> void:
+	var a := Rng.stream("repro")
+	var b := Rng.stream("repro")
+	for i: int in 64:
+		assert_eq(a.randi_range(0, 9), b.randi_range(0, 9))
+		assert_eq(a.randf_range(-2.0, 2.0), b.randf_range(-2.0, 2.0))
+		assert_eq(a.pick_weighted(PackedFloat32Array([1.0, 2.0, 3.0])), b.pick_weighted(PackedFloat32Array([1.0, 2.0, 3.0])))
+	assert_eq(a._a, b._a)
+
+
 func test_pick_weighted_respects_zero() -> void:
 	var r := Rng.stream("weights")
 	for i: int in 200:

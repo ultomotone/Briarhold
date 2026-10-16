@@ -58,4 +58,10 @@ static func arrivals(w: SimWorld, day: int) -> void:
 		e.state = Entities.Enemy.State.IDLE
 		e.home = Worldgen.open_spot(w, r, 24.0, w.field.bound - 12.0) # it walks to its new bed and sleeps
 		e.wander = e.home
-	w.events.push("arrivals", {"beetles": came, "visitor": visitor, "day": day})
+	# and sometimes a beast of some other kind settles somewhere new
+	var beast: String = ""
+	if r.randf() < c.wn("beasts", "beast_chance", 0.6):
+		var kinds: PackedStringArray = ["pounce_toad", "gale_puff", "hollow_mole", "cinder_hog", "shellback"]
+		beast = kinds[r.randi_range(0, kinds.size() - 1)]
+		w.spawn_enemy(beast, Worldgen.open_spot(w, r, 30.0, w.field.bound - 8.0))
+	w.events.push("arrivals", {"beetles": came, "visitor": visitor, "beast": beast, "day": day})

@@ -31,7 +31,7 @@ func test_worldgen_is_deterministic() -> void:
 	for i: int in a.objects.size():
 		assert_eq(a.objects[i].pos, b.objects[i].pos)
 		assert_eq(a.objects[i].seed_id, b.objects[i].seed_id)
-	assert_eq(a.enemies.size(), 7 + 4 + 2) # field grubs, beetles, two region guardians
+	assert_eq(a.enemies.size(), 7 + 4 + 2 + 17) # field grubs, beetles, two region guardians, the beasts
 	assert_eq(a.gates.size(), 2)
 	assert_eq(a.hazards.size(), 2 + 4 + 3 + 9 + 3 + 3) # vents, field pools, then the regions'
 	assert_eq(a.hazards[0].hazard_id, "fire")

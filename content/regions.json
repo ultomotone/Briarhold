@@ -4,11 +4,77 @@
   "radius": 18.0,
   "sprouts": 4,
   "regions": [
-    { "id": "mere", "name": "The Mere", "type": "tide", "hazard": "water", "layout": "pools", "relic": "relic_shell", "pellets": 2, "heartroot": false, "guardian": "", "line": "Still water. Tide sprigs walk the bottom and bring things up." },
-    { "id": "wire_fence", "name": "The Wire Fence", "type": "spark", "hazard": "shock", "layout": "ring", "relic": "relic_lens", "pellets": 1, "heartroot": false, "guardian": "", "line": "A live fence around a cache. Only Spark sprigs can cross it." },
-    { "id": "fume_bog", "name": "The Fume Bog", "type": "thorn", "hazard": "poison", "layout": "cluster", "relic": "relic_pin", "pellets": 1, "heartroot": true, "guardian": "grub", "line": "Poison gas over a buried cache. Thorn sprigs breathe it fine, and poison whatever eats them." },
-    { "id": "stone_stacks", "name": "The Stone Stacks", "type": "moth", "hazard": "", "layout": "walls", "relic": "relic_feather", "pellets": 1, "heartroot": false, "guardian": "", "line": "Treasure walled in with no way through. Moth sprigs fly it out over the top." },
-    { "id": "frost_hollow", "name": "The Frost Hollow", "type": "frost", "hazard": "freeze", "layout": "cluster", "relic": "relic_opal", "pellets": 1, "heartroot": false, "guardian": "grub", "line": "Frozen ground. Frost sprigs stand in it, and enough of them on a beast freeze it solid." },
-    { "id": "fallen_oak", "name": "The Fallen Oak", "type": "oak", "hazard": "", "layout": "open", "relic": "relic_acorn", "pellets": 1, "heartroot": false, "guardian": "", "line": "A brass acorn too heavy for small hands. Oak sprigs lift ten times their share." }
+    {
+      "id": "mere",
+      "name": "The Mere",
+      "type": "tide",
+      "hazard": "water",
+      "layout": "pools",
+      "relic": "relic_shell",
+      "pellets": 2,
+      "heartroot": false,
+      "guardian": "",
+      "line": "Still water. Tide sprigs walk the bottom and bring things up."
+    },
+    {
+      "id": "wire_fence",
+      "name": "The Wire Fence",
+      "type": "spark",
+      "hazard": "shock",
+      "layout": "ring",
+      "relic": "relic_lens",
+      "pellets": 1,
+      "heartroot": false,
+      "guardian": "",
+      "line": "A live fence around a cache. Only Spark sprigs can cross it."
+    },
+    {
+      "id": "fume_bog",
+      "name": "The Fume Bog",
+      "type": "thorn",
+      "hazard": "poison",
+      "layout": "cluster",
+      "relic": "relic_pin",
+      "pellets": 1,
+      "heartroot": true,
+      "guardian": "mire_hog",
+      "line": "Poison gas over a buried cache. Thorn sprigs breathe it fine, and poison whatever eats them."
+    },
+    {
+      "id": "stone_stacks",
+      "name": "The Stone Stacks",
+      "type": "moth",
+      "hazard": "",
+      "layout": "walls",
+      "relic": "relic_feather",
+      "pellets": 1,
+      "heartroot": false,
+      "guardian": "",
+      "line": "Treasure walled in with no way through. Moth sprigs fly it out over the top."
+    },
+    {
+      "id": "frost_hollow",
+      "name": "The Frost Hollow",
+      "type": "frost",
+      "hazard": "freeze",
+      "layout": "cluster",
+      "relic": "relic_opal",
+      "pellets": 1,
+      "heartroot": false,
+      "guardian": "grub",
+      "line": "Frozen ground. Frost sprigs stand in it, and enough of them on a beast freeze it solid."
+    },
+    {
+      "id": "fallen_oak",
+      "name": "The Fallen Oak",
+      "type": "oak",
+      "hazard": "",
+      "layout": "open",
+      "relic": "relic_acorn",
+      "pellets": 1,
+      "heartroot": false,
+      "guardian": "",
+      "line": "A brass acorn too heavy for small hands. Oak sprigs lift ten times their share."
+    }
   ]
 }

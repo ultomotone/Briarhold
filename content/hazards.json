@@ -104,6 +104,19 @@
       "speed_mult": 1.0,
       "hazard_leave_cures": false,
       "disables_attack": false
+    },
+    {
+      "id": "gust",
+      "name": "Gust",
+      "status": "",
+      "kill_after": -1.0,
+      "whistle_cures": false,
+      "flee": false,
+      "knight_damage_per_sec": 0.0,
+      "colour_key": "enemy_puff",
+      "speed_mult": 1.0,
+      "hazard_leave_cures": false,
+      "disables_attack": false
     }
   ]
 }

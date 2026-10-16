@@ -30,6 +30,7 @@ var world_root: Node3D
 var _elapsed: float = 0.0
 var _shot_mode: bool = false
 var _shot_whistle: bool = false
+var _orbiting: bool = false # middle mouse button held: drag turns and tilts the camera
 
 
 func _ready() -> void:
@@ -189,6 +190,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if mode != Mode.PLAY:
+		_orbiting = false
 		return
 	if event.is_action_pressed("strike"):
 		cmd.strike = true
@@ -214,6 +216,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			rig.zoom(-1.0)
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			rig.zoom(1.0)
+		elif mb.button_index == MOUSE_BUTTON_MIDDLE:
+			_orbiting = mb.pressed
+	elif event is InputEventMouseMotion and _orbiting:
+		# the pointer stays visible and free; only the drag distance is read
+		var mm: InputEventMouseMotion = event
+		rig.orbit(mm.relative)
 
 
 func _physics_process(delta: float) -> void:
@@ -252,7 +260,7 @@ func _process(delta: float) -> void:
 	if mode == Mode.PLAY:
 		rig.follow(kp, delta)
 		_update_cursor()
-	sky.apply(sim.clock.sun_t(), sim.clock.night_t())
+	sky.apply(sim.clock.time, sim.clock.day_seconds, sim.clock.night_seconds)
 	var swing: float = -1.0
 	if k.swing_t >= 0.0:
 		swing = k.swing_t / maxf(0.01, tables.wn("knight", "swing_seconds", 0.44))
@@ -281,7 +289,7 @@ func _update_cursor() -> void:
 	var cam: Camera3D = rig.cam
 	var origin: Vector3 = cam.project_ray_origin(m)
 	var dir: Vector3 = cam.project_ray_normal(m)
-	var hit: Vector3 = sim.field.raycast(origin, dir, 120.0)
+	var hit: Vector3 = sim.field.raycast(origin, dir, 220.0)
 	if hit == Vector3.INF or absf(hit.x) > sim.field.bound or absf(hit.z) > sim.field.bound:
 		cursor = Vector3.INF
 	else:
@@ -320,10 +328,59 @@ func shot_pose(name: String) -> void:
 			sim.clock.time = sim.clock.day_seconds + 10.0
 		"whistle":
 			_shot_whistle = true
+		"bestiary":
+			_shot_bestiary()
+		"far":
+			_shot_far()
 		_:
 			if name.begins_with("region:"):
 				_shot_whistle = false
 				_shot_to_region(name.substr(7))
+
+
+## Shot seam: one of each beast in a row in front of him, asleep or idle, the mole underground.
+func _shot_bestiary() -> void:
+	_shot_whistle = false
+	var at: Vector3 = sim.ground(Vector3(0.0, 0.0, 30.0))
+	sim.knight.pos = at
+	sim.knight.prev = at
+	sim.enemies.clear()
+	for s: Entities.Sprig in sim.sprigs:
+		if s.state == Entities.Sprig.State.FOLLOW:
+			s.pos = sim.ground(at + Vector3(float(s.id % 5) * 0.4 - 0.8, 0.0, 1.2 + float(s.id % 3) * 0.4))
+			s.prev = s.pos
+			s.smooth_target = s.pos
+	sim.anchor = Vector3.INF
+	var kinds: PackedStringArray = ["cinder_hog", "pounce_toad", "shellback", "gale_puff", "mire_hog", "hollow_mole"]
+	for i: int in kinds.size():
+		var p: Vector3 = sim.push_out(at + Vector3(-7.5 + 3.0 * float(i), 0.0, -6.0 - 1.5 * float(i % 2)), 1.0)
+		var e: Entities.Enemy = sim.spawn_enemy(kinds[i], p)
+		e.state = Entities.Enemy.State.SLEEP if kinds[i] != "hollow_mole" else Entities.Enemy.State.BURROW
+		e.yaw = PI * 0.15 * float(i - 3) + PI
+		e.surface_t = 99.0
+	rig.focus = at
+	rig.yaw_target = 0.0
+	rig.yaw = 0.0
+	rig.dist_target = 15.0
+	rig.dist = 15.0
+	cursor = sim.ground(at + Vector3(0.0, 0.0, -6.0))
+
+
+## Shot seam: zoomed far out over a ruin, to see the lie of the land.
+func _shot_far() -> void:
+	var at: Vector3 = sim.knight.pos
+	for sc: Dictionary in sim.scenery:
+		if sc["kind"] == "column":
+			at = sim.ground(sc["pos"] + Vector3(4.0, 0.0, 6.0))
+			break
+	sim.knight.pos = at
+	sim.knight.prev = at
+	sim.enemies.clear()
+	rig.focus = at
+	rig.dist_target = CameraRig.DIST_MAX
+	rig.dist = CameraRig.DIST_MAX
+	rig.pitch_target = 40.0
+	rig.pitch_deg = 40.0
 
 
 ## Shot seam: stand him on the Hold side of a territory with the squad around him.

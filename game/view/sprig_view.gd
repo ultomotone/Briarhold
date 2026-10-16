@@ -150,52 +150,134 @@ func update(w: SimWorld, alpha: float, selected: String, delta: float, now: floa
 		mi.multimesh.visible_instance_count = int(scounts.get(id, 0))
 
 
-## A sprig (owner verdict 2026-09-02: cuter, closer to the reference creature's proportions):
-## a big round head on a small body, two dark eyes, stick arms and legs, one stem out of the
-## head with a leaf, a bud, or a bloom on it. Part ids ride UV.x so the shader can pick colours
-## and show only the top that matches maturity. Parts: 0 body/head, 1 stem, 2 leaf, 3 bud,
-## 4 petals, 5 bloom centre, 6 eyes, 7 limbs.
+## A sprig. Owner verdicts: 2026-09-02 "cuter, like the real thing"; 2026-10-16 "cuter, and the
+## leaves more leafy". A big round head on a small pear body; big eyes with whites, a dark pupil
+## and a highlight; blush and a small smile; stubby limbs with round hands and feet; a curved
+## stem from the crown carrying a broad leaf with a midrib, a teardrop bud, or a five-petal
+## bloom by maturity. Part ids ride UV.x so the shader can colour each part and show only the
+## top that matches maturity; UV.y carries "distance from the midrib" on leaves and petals.
+## Parts: 0 body/head, 1 stem, 2 leaf, 3 bud, 4 petals, 5 bloom centre, 6 pupils and mouth,
+## 7 limbs, 8 wings, 9 eye whites and highlights, 10 blush.
+const CROWN := Vector3(0.0, 1.08, 0.0)
+
+
 static func _make_mesh() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	# legs
-	_cyl(st, Vector3(-0.06, 0.0, 0.0), Vector3(-0.06, 0.2, 0.0), 0.025, 5, 7)
-	_cyl(st, Vector3(0.06, 0.0, 0.0), Vector3(0.06, 0.2, 0.0), 0.025, 5, 7)
-	_sphere(st, Vector3(-0.06, 0.02, 0.02), 0.035, 6, 3, 7)
-	_sphere(st, Vector3(0.06, 0.02, 0.02), 0.035, 6, 3, 7)
-	# body: a small bulb
-	_sphere(st, Vector3(0.0, 0.3, 0.0), 0.14, 10, 6, 0)
-	# arms: thin, angled down and a little forward
-	_cyl(st, Vector3(-0.12, 0.36, 0.0), Vector3(-0.21, 0.22, 0.05), 0.02, 5, 7)
-	_cyl(st, Vector3(0.12, 0.36, 0.0), Vector3(0.21, 0.22, 0.05), 0.02, 5, 7)
-	# head: big and round, the whole character
-	_sphere(st, Vector3(0.0, 0.58, 0.0), 0.21, 12, 8, 0)
-	# eyes: two dark beads, forward (+z is the way it faces)
-	_sphere(st, Vector3(-0.085, 0.6, 0.175), 0.045, 7, 4, 6)
-	_sphere(st, Vector3(0.085, 0.6, 0.175), 0.045, 7, 4, 6)
-	# stem from the crown
-	_cyl(st, Vector3(0.0, 0.76, 0.0), Vector3(0.0, 1.02, 0.0), 0.018, 5, 1)
-	# leaf (maturity 0)
-	var l0 := Vector3(0.0, 1.0, 0.0)
-	var l1 := Vector3(0.13, 1.06, 0.12)
-	var l2 := Vector3(0.0, 1.2, 0.26)
-	var l3 := Vector3(-0.13, 1.06, 0.12)
-	_quad(st, l0, l1, l2, l3, 2)
-	# bud (maturity 1)
-	_sphere(st, Vector3(0.0, 1.07, 0.0), 0.075, 7, 4, 3)
-	# bloom (maturity 2): five petals and a centre
-	for i: int in 5:
-		var a: float = float(i) / 5.0 * TAU
-		var dir := Vector3(sin(a), 0.0, cos(a))
-		var side := Vector3(cos(a), 0.0, -sin(a))
-		var c := Vector3(0.0, 1.05, 0.0)
-		_quad(st, c, c + dir * 0.09 + side * 0.07 + Vector3(0.0, 0.03, 0.0), c + dir * 0.19 + Vector3(0.0, 0.05, 0.0), c + dir * 0.09 - side * 0.07 + Vector3(0.0, 0.03, 0.0), 4)
-	_sphere(st, Vector3(0.0, 1.06, 0.0), 0.05, 7, 4, 5)
+	# legs: short and stubby, round feet a little forward
+	_cyl(st, Vector3(-0.065, 0.03, 0.0), Vector3(-0.06, 0.2, 0.0), 0.028, 6, 7)
+	_cyl(st, Vector3(0.065, 0.03, 0.0), Vector3(0.06, 0.2, 0.0), 0.028, 6, 7)
+	_ellip(st, Vector3(-0.066, 0.03, 0.025), Vector3(0.042, 0.032, 0.055), 7, 4, 7)
+	_ellip(st, Vector3(0.066, 0.03, 0.025), Vector3(0.042, 0.032, 0.055), 7, 4, 7)
+	# body: a small pear
+	_ellip(st, Vector3(0.0, 0.3, 0.0), Vector3(0.125, 0.15, 0.115), 12, 7, 0)
+	# arms with round hands, angled down and a little forward
+	_cyl(st, Vector3(-0.11, 0.37, 0.0), Vector3(-0.2, 0.25, 0.05), 0.022, 5, 7)
+	_cyl(st, Vector3(0.11, 0.37, 0.0), Vector3(0.2, 0.25, 0.05), 0.022, 5, 7)
+	_sphere(st, Vector3(-0.205, 0.24, 0.055), 0.034, 6, 4, 7)
+	_sphere(st, Vector3(0.205, 0.24, 0.055), 0.034, 6, 4, 7)
+	# head: big, round, a touch wider than tall
+	_ellip(st, Vector3(0.0, 0.6, 0.0), Vector3(0.245, 0.232, 0.235), 14, 9, 0)
+	# eyes: whites, pupils, one highlight each (+z is forward)
+	for sx: float in [-1.0, 1.0]:
+		_ellip(st, Vector3(0.093 * sx, 0.59, 0.198), Vector3(0.064, 0.078, 0.042), 9, 6, 9)
+		_ellip(st, Vector3(0.088 * sx, 0.582, 0.231), Vector3(0.041, 0.054, 0.024), 8, 5, 6)
+		_sphere(st, Vector3(0.088 * sx + 0.016, 0.605, 0.254), 0.015, 6, 3, 9)
+		# blush under each eye
+		_ellip(st, Vector3(0.152 * sx, 0.515, 0.168), Vector3(0.042, 0.022, 0.016), 7, 4, 10)
+	# a small smile
+	_ellip(st, Vector3(0.0, 0.508, 0.218), Vector3(0.026, 0.009, 0.012), 7, 3, 6)
+	# stem: two segments, a gentle S out of the crown
+	_cyl(st, Vector3(0.0, 0.8, 0.0), Vector3(-0.012, 0.95, -0.02), 0.019, 6, 1)
+	_cyl(st, Vector3(-0.012, 0.95, -0.02), CROWN, 0.017, 6, 1)
+	# leaf (maturity 0): broad, pointed, folded along the midrib, curling forward at the tip
+	_leaf(st, CROWN, 0.36, 0.125, 2)
+	# bud (maturity 1): a teardrop with two small leaves under it
+	_ellip(st, CROWN + Vector3(0.0, 0.07, 0.0), Vector3(0.062, 0.09, 0.062), 9, 6, 3)
+	_ellip(st, CROWN + Vector3(0.0, 0.135, 0.0), Vector3(0.03, 0.04, 0.03), 6, 3, 3)
+	_small_leaf(st, CROWN + Vector3(0.0, 0.02, 0.0), Vector3(0.11, 0.05, 0.02), 3)
+	_small_leaf(st, CROWN + Vector3(0.0, 0.02, 0.0), Vector3(-0.11, 0.05, -0.02), 3)
+	# bloom (maturity 2): five round petals and a centre
+	for k: int in 5:
+		var a: float = float(k) / 5.0 * TAU
+		_petal(st, CROWN + Vector3(0.0, 0.04, 0.0), a, 0.14, 0.068, 4)
+	_ellip(st, CROWN + Vector3(0.0, 0.055, 0.0), Vector3(0.052, 0.035, 0.052), 8, 4, 5)
 	# wings (part 8): two thin panes on the back, shown only for flyers
 	for sx: float in [-1.0, 1.0]:
 		_quad(st, Vector3(0.04 * sx, 0.52, -0.1), Vector3(0.3 * sx, 0.6, -0.17), Vector3(0.27 * sx, 0.3, -0.18), Vector3(0.04 * sx, 0.32, -0.1), 8)
 	st.generate_normals()
 	return st.commit()
+
+
+## A leaf from base along a curve rising and leaning forward. Strips across the midrib, edges a
+## little lower than the rib so it reads folded; UV.y is 0 on the rib and 1 at the edge.
+static func _leaf(st: SurfaceTool, base: Vector3, length: float, half_w: float, part: int) -> void:
+	var n: int = 9
+	var prev_c: Vector3 = base
+	var prev_l: Vector3 = base
+	var prev_r: Vector3 = base
+	for i: int in range(1, n + 1):
+		var t: float = float(i) / float(n)
+		var c: Vector3 = base + Vector3(0.0, 0.62 * t - 0.12 * t * t, 0.42 * t + 0.32 * t * t) * length
+		# wide near the middle, a soft round shoulder, a sharp tip
+		var w: float = half_w * sin(PI * pow(t, 0.72)) * (1.0 - 0.15 * t)
+		var tang: Vector3 = (c - prev_c).normalized()
+		var nrm: Vector3 = tang.cross(Vector3.RIGHT).normalized()
+		var droop: Vector3 = nrm * (w / half_w) * 0.028
+		var l: Vector3 = c + Vector3(-w, 0.0, 0.0) + droop
+		var r: Vector3 = c + Vector3(w, 0.0, 0.0) + droop
+		_tri_uv(st, prev_c, prev_l, l, 0.0, 1.0, 1.0, part)
+		_tri_uv(st, prev_c, l, c, 0.0, 1.0, 0.0, part)
+		_tri_uv(st, prev_c, r, prev_r, 0.0, 1.0, 1.0, part)
+		_tri_uv(st, prev_c, c, r, 0.0, 0.0, 1.0, part)
+		prev_c = c
+		prev_l = l
+		prev_r = r
+
+
+static func _small_leaf(st: SurfaceTool, base: Vector3, tip_off: Vector3, part: int) -> void:
+	var tip: Vector3 = base + tip_off
+	var mid: Vector3 = base + tip_off * 0.5
+	var side: Vector3 = tip_off.cross(Vector3.UP).normalized() * 0.03
+	_tri_uv(st, base, mid + side, tip, 0.0, 1.0, 0.0, part)
+	_tri_uv(st, base, tip, mid - side, 0.0, 0.0, 1.0, part)
+
+
+## One round petal as a fan, tilted up a little; UV.y 0 at the centre, 1 at the rim.
+static func _petal(st: SurfaceTool, c: Vector3, ang: float, length: float, half_w: float, part: int) -> void:
+	var dir := Vector3(sin(ang), 0.28, cos(ang)).normalized()
+	var side := Vector3(cos(ang), 0.0, -sin(ang))
+	var pts: Array[Vector3] = []
+	for k: int in 7:
+		var a: float = -PI * 0.5 + PI * float(k) / 6.0
+		var along: float = (0.55 + 0.45 * cos(a)) * length
+		var across: float = sin(a) * half_w
+		pts.append(c + dir * along + side * across)
+	for k: int in 6:
+		_tri_uv(st, c, pts[k], pts[k + 1], 0.0, 1.0, 1.0, part)
+
+
+static func _tri_uv(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, ua: float, ub: float, uc: float, part: int) -> void:
+	st.set_uv(Vector2(float(part), ua))
+	st.add_vertex(a)
+	st.set_uv(Vector2(float(part), uc))
+	st.add_vertex(c)
+	st.set_uv(Vector2(float(part), ub))
+	st.add_vertex(b)
+
+
+static func _ellip(st: SurfaceTool, c: Vector3, rad: Vector3, seg: int, rings: int, part: int) -> void:
+	for i: int in rings:
+		var t0: float = PI * float(i) / float(rings)
+		var t1: float = PI * float(i + 1) / float(rings)
+		for j: int in seg:
+			var p0: float = TAU * float(j) / float(seg)
+			var p1: float = TAU * float(j + 1) / float(seg)
+			var a: Vector3 = c + Vector3(sin(t0) * cos(p0), cos(t0), sin(t0) * sin(p0)) * rad
+			var b: Vector3 = c + Vector3(sin(t0) * cos(p1), cos(t0), sin(t0) * sin(p1)) * rad
+			var cc: Vector3 = c + Vector3(sin(t1) * cos(p1), cos(t1), sin(t1) * sin(p1)) * rad
+			var d: Vector3 = c + Vector3(sin(t1) * cos(p0), cos(t1), sin(t1) * sin(p0)) * rad
+			_quad(st, a, b, cc, d, part)
 
 
 static func _sphere(st: SurfaceTool, c: Vector3, r: float, seg: int, rings: int, part: int) -> void:
@@ -249,16 +331,18 @@ uniform vec4 stalk : source_color = vec4(0.5, 0.45, 0.3, 1.0);
 uniform float buried = 0.0;
 uniform float wings = 0.0;
 varying float part;
+varying float across;
 varying vec4 icol;
 void vertex() {
 	float phase = INSTANCE_CUSTOM.x;
 	float maturity = INSTANCE_CUSTOM.y;
 	float moving = INSTANCE_CUSTOM.z;
 	part = floor(UV.x + 0.5);
-	vec3 crown = vec3(0.0, 1.0, 0.0);
+	across = UV.y;
+	vec3 crown = vec3(0.0, 1.08, 0.0);
 	// only the top that matches maturity exists; the others collapse into the stem tip
 	bool hide = (part == 2.0 && maturity > 0.5) || (part == 3.0 && (maturity < 0.5 || maturity > 1.5)) || ((part == 4.0 || part == 5.0) && maturity < 1.5);
-	if (buried > 0.5 && (part == 0.0 || part == 6.0 || part == 7.0 || part == 8.0)) {
+	if (buried > 0.5 && (part == 0.0 || part == 6.0 || part == 7.0 || part == 8.0 || part == 9.0 || part == 10.0)) {
 		hide = true;
 	}
 	if (part == 8.0 && wings < 0.5) {
@@ -267,19 +351,28 @@ void vertex() {
 	if (hide) {
 		VERTEX = crown;
 	}
-	// the top sways; the body hops when walking; the head tilts a little with the step
-	float w = clamp((VERTEX.y - 0.75) * 2.0, 0.0, 1.0);
-	VERTEX.x += sin(TIME * 2.2 + phase * 6.283) * 0.05 * w;
-	VERTEX.z += sin(TIME * 1.7 + phase * 4.1) * 0.035 * w;
+	// a blink now and then, each on its own phase: the eyes close to a line
+	if ((part == 6.0 || part == 9.0) && abs(VERTEX.x) > 0.04) {
+		float b = 1.0 - smoothstep(0.0, 0.03, abs(fract(TIME * 0.21 + phase * 0.37) - 0.5));
+		VERTEX.y = mix(VERTEX.y, 0.588, b * 0.92);
+	}
+	// breathing: the body swells a hair on its own rhythm
+	if (part == 0.0 && VERTEX.y < 0.46) {
+		VERTEX.xz *= 1.0 + 0.025 * sin(TIME * 2.4 + phase * 6.283);
+	}
+	// the stem and its top sway; the leaf tip most of all
+	float w = clamp((VERTEX.y - 0.8) * 2.4, 0.0, 1.4);
+	VERTEX.x += sin(TIME * 2.2 + phase * 6.283) * 0.045 * w;
+	VERTEX.z += sin(TIME * 1.7 + phase * 4.1) * 0.03 * w;
 	float step_ = sin(TIME * 11.0 + phase * 6.283);
 	// limbs swing from hip and shoulder: legs (near the centre line) forward and back, arms against them
 	if (part == 7.0) {
 		float side = VERTEX.x < 0.0 ? -1.0 : 1.0;
-		if (abs(VERTEX.x) < 0.1) {
+		if (abs(VERTEX.x) < 0.11) {
 			VERTEX.z += step_ * side * moving * (0.2 - VERTEX.y) * 1.8;
 			VERTEX.y += max(0.0, step_ * side) * moving * 0.03 * (0.2 - VERTEX.y) * 5.0;
 		} else {
-			VERTEX.z -= step_ * side * moving * (0.36 - VERTEX.y) * 1.6;
+			VERTEX.z -= step_ * side * moving * (0.37 - VERTEX.y) * 1.6;
 		}
 	}
 	// wings beat fast whether walking or not
@@ -288,25 +381,40 @@ void vertex() {
 		VERTEX.x *= mix(1.0, 0.35, f);
 		VERTEX.z -= abs(VERTEX.x) * 0.5 * f;
 	}
-	VERTEX.y += moving * abs(step_) * 0.04;
+	VERTEX.y += moving * abs(step_) * 0.045;
 	if (buried > 0.5) {
 		// a sprout is the stem and its top, out of the ground
-		VERTEX.y -= 0.72;
+		VERTEX.y -= 0.78;
 	}
 	icol = INSTANCE_CUSTOM;
 }
 void fragment() {
-	vec3 leaf = vec3(0.4, 0.66, 0.26);
 	vec3 col = tint.rgb;
-	if (part == 1.0) { col = stalk.rgb; }
-	else if (part == 2.0) { col = leaf; }
-	else if (part == 3.0) { col = leaf * 0.85; }
-	else if (part == 4.0) { col = vec3(0.98, 0.97, 0.9); }
+	float rough = 0.75;
+	float spec = 0.3;
+	if (part == 1.0) { col = stalk.rgb * 1.1; }
+	else if (part == 2.0 || part == 3.0) {
+		// a fresh leaf: dark along the rib, bright across the blade, faint veins, the
+		// underside a shade darker
+		vec3 rib = vec3(0.2, 0.45, 0.15);
+		vec3 blade = vec3(0.42, 0.76, 0.27);
+		col = mix(rib, blade, smoothstep(0.0, 0.3, across));
+		col *= 1.0 - 0.1 * smoothstep(0.88, 1.0, across);
+		col *= 1.0 - 0.07 * step(0.82, fract(across * 3.0));
+		if (!FRONT_FACING) { col *= 0.78; }
+		if (part == 3.0) { col = mix(col, tint.rgb, 0.18); }
+		rough = 0.55;
+		spec = 0.45;
+	}
+	else if (part == 4.0) { col = mix(vec3(1.0, 0.99, 0.95), mix(vec3(1.0), tint.rgb, 0.35), across * 0.6); rough = 0.6; }
 	else if (part == 5.0) { col = vec3(1.0, 0.82, 0.25); }
-	else if (part == 6.0) { col = vec3(0.06, 0.07, 0.1); }
+	else if (part == 6.0) { col = vec3(0.05, 0.05, 0.08); rough = 0.2; spec = 0.8; }
+	else if (part == 9.0) { col = vec3(0.98, 0.98, 0.96); rough = 0.3; spec = 0.6; }
+	else if (part == 10.0) { col = mix(tint.rgb, vec3(1.0, 0.45, 0.5), 0.65); }
 	else if (part == 8.0) { col = mix(tint.rgb, vec3(1.0), 0.55); }
+	else if (part == 0.0) { rough = 0.6; }
 	ALBEDO = col * COLOR.rgb;
-	ROUGHNESS = part == 6.0 ? 0.25 : 0.8;
-	SPECULAR = part == 6.0 ? 0.6 : 0.25;
+	ROUGHNESS = rough;
+	SPECULAR = spec;
 }
 """

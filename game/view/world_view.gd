@@ -25,6 +25,7 @@ func build(p: PaletteData, t: ContentTables, w: SimWorld) -> void:
 	tables = t
 	_build_hold(w)
 	_build_stones(w)
+	_build_scenery(w)
 	_build_plants(w)
 	for z: Entities.HazardZone in w.hazards:
 		if z.hazard_id == "fire":
@@ -86,26 +87,341 @@ func _build_hold(w: SimWorld) -> void:
 
 
 func _build_stones(w: SimWorld) -> void:
+	var stones: Array[Dictionary] = []
+	for ob: Dictionary in w.obstacles:
+		if str(ob.get("kind", "stone")) == "stone":
+			stones.append(ob)
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
 	mm.mesh = _ico(1.0)
-	mm.instance_count = w.obstacles.size()
-	for i: int in w.obstacles.size():
-		var ob: Dictionary = w.obstacles[i]
+	mm.instance_count = stones.size()
+	var base: Color = pal.col("scatter_stone")
+	for i: int in stones.size():
+		var ob: Dictionary = stones[i]
 		var c: Vector3 = ob["pos"]
 		var r: float = float(ob["r"])
 		var h: float = float(ob["h"])
 		var b := Basis.from_euler(Vector3(0.2 * float(i % 3), float(i) * 0.7, 0.15 * float(i % 2))).scaled(Vector3(r * 1.15, h, r * 1.05))
 		mm.set_instance_transform(i, Transform3D(b, c + Vector3(0.0, h * 0.35, 0.0)))
+		# a little variety: some warmer, some mossier, some paler
+		var v: float = float((i * 37) % 11) / 10.0
+		var tint: Color = base.lerp(pal.col("terrain_moss"), 0.25 * v) if i % 3 == 0 else base.lightened(0.12 * v)
+		mm.set_instance_color(i, tint.srgb_to_linear())
 	_stones = MultiMeshInstance3D.new()
 	_stones.multimesh = mm
-	_stones.material_override = _mat(pal.col("scatter_stone"), 1.0, 0.0)
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 1.0
+	_stones.material_override = mat
 	_stones.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	add_child(_stones)
 
 
+## The bigger furniture from w.scenery. Tall tops (mushroom caps, daisy heads) dither away when
+## the camera comes close so they never hide the gnome.
+func _build_scenery(w: SimWorld) -> void:
+	var bark := _mat(pal.col("bark"), 1.0, 0.0)
+	var wood := _mat(pal.col("fallen_log"), 0.95, 0.0)
+	var ring_c := _mat(pal.col("terrain_dry").lightened(0.15), 0.9, 0.0)
+	var moss := _mat(pal.col("terrain_moss").darkened(0.05), 1.0, 0.0)
+	var ruin := _mat(pal.col("ruin_stone"), 0.95, 0.0)
+	var ruin_dark := _mat(pal.col("ruin_stone").darkened(0.18), 0.95, 0.0)
+	var stalk_m := _mat(pal.col("mushroom_stalk"), 0.8, 0.0)
+	var cap_m := _fade(_mat(pal.col("mushroom_cap"), 0.6, 0.0))
+	var spot_m := _fade(_mat(pal.col("mushroom_spot"), 0.7, 0.0))
+	var stem_m := _mat(pal.col("posy_stalk"), 0.9, 0.0)
+	var petal_m := _fade(_mat(Color(0.97, 0.96, 0.92), 0.7, 0.0))
+	var heart_m: Array[StandardMaterial3D] = [
+		_fade(_mat(pal.col("flower_a"), 0.6, 0.0, pal.col("flower_a"), 0.15)),
+		_fade(_mat(pal.col("flower_b"), 0.6, 0.0, pal.col("flower_b"), 0.15)),
+		_fade(_mat(pal.col("flower_c"), 0.6, 0.0, pal.col("flower_c"), 0.15)),
+	]
+	for sc: Dictionary in w.scenery:
+		var kind: String = sc["kind"]
+		match kind:
+			"stump":
+				var n := Node3D.new()
+				n.position = sc["pos"]
+				n.rotation.y = float(sc["rot"])
+				add_child(n)
+				var rad: float = float(sc["r"])
+				var h: float = float(sc["h"])
+				var trunk := CylinderMesh.new()
+				trunk.top_radius = rad * 0.92
+				trunk.bottom_radius = rad * 1.08
+				trunk.height = h + 0.6
+				trunk.radial_segments = 14
+				var tm := _mesh(trunk, bark)
+				tm.position.y = (h + 0.6) * 0.5 - 0.6
+				n.add_child(tm)
+				var top := _mesh(_cyl(rad * 0.86, 0.06), ring_c)
+				top.position.y = h + 0.02
+				n.add_child(top)
+				for k: int in 3:
+					var ring := TorusMesh.new()
+					ring.inner_radius = rad * (0.2 + 0.2 * float(k))
+					ring.outer_radius = ring.inner_radius + 0.05
+					ring.rings = 20
+					ring.ring_segments = 3
+					var rm := _mesh(ring, bark)
+					rm.position.y = h + 0.05
+					rm.scale.y = 0.3
+					n.add_child(rm)
+				for k: int in 5:
+					var a: float = float(k) / 5.0 * TAU + 0.3
+					var root := _mesh(_capsule(rad * 0.28, rad * 1.6), bark)
+					root.position = Vector3(sin(a) * rad * 1.05, 0.15, cos(a) * rad * 1.05)
+					root.rotation = Vector3(cos(a) * 1.25, 0.0, -sin(a) * 1.25)
+					n.add_child(root)
+				var mp := _mesh(_ico(rad * 0.35), moss)
+				mp.scale = Vector3(1.4, 0.35, 1.0)
+				mp.position = Vector3(rad * 0.3, h + 0.05, -rad * 0.2)
+				n.add_child(mp)
+			"log":
+				var a: Vector3 = sc["a"]
+				var b: Vector3 = sc["b"]
+				var rad: float = float(sc["r"])
+				var length: float = a.distance_to(b)
+				var dir: Vector3 = (b - a).normalized()
+				var n := Node3D.new()
+				n.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), (a + b) * 0.5 + Vector3(0.0, rad * 0.8, 0.0))
+				add_child(n)
+				var cm := CylinderMesh.new()
+				cm.top_radius = rad * 0.9
+				cm.bottom_radius = rad
+				cm.height = length
+				cm.radial_segments = 12
+				var lm := _mesh(cm, wood)
+				lm.rotation.x = PI * 0.5
+				n.add_child(lm)
+				for end: float in [-0.5, 0.5]:
+					var face := _mesh(_cyl(rad * 0.88, 0.04), ring_c)
+					face.rotation.x = PI * 0.5
+					face.position.z = end * length
+					n.add_child(face)
+				var stub := _mesh(_cyl(rad * 0.3, rad * 1.6), wood)
+				stub.position = Vector3(0.0, rad * 0.9, length * 0.15)
+				stub.rotation.z = 0.6
+				n.add_child(stub)
+				for k: int in 3:
+					var mp := _mesh(_ico(rad * 0.5), moss)
+					mp.scale = Vector3(1.0, 0.35, 1.6)
+					mp.position = Vector3(0.0, rad * 0.85, length * (-0.3 + 0.3 * float(k)))
+					n.add_child(mp)
+			"column":
+				var n := Node3D.new()
+				n.position = sc["pos"]
+				n.rotation.y = float(sc["rot"])
+				add_child(n)
+				var rad: float = float(sc["r"])
+				var h: float = float(sc["h"])
+				var base := _mesh(_box(rad * 2.6, 0.35, rad * 2.6), ruin_dark)
+				base.position.y = 0.1
+				n.add_child(base)
+				var shaft := CylinderMesh.new()
+				shaft.top_radius = rad * 0.92
+				shaft.bottom_radius = rad
+				shaft.height = h
+				shaft.radial_segments = 10
+				var sm := _mesh(shaft, ruin)
+				sm.position.y = h * 0.5
+				if bool(sc["broken"]):
+					sm.rotation.z = 0.04
+				n.add_child(sm)
+				if bool(sc["broken"]):
+					var chunk := _mesh(_ico(rad * 0.9), ruin)
+					chunk.scale = Vector3(1.0, 0.5, 1.0)
+					chunk.position.y = h
+					chunk.rotation = Vector3(0.4, 0.0, 0.3)
+					n.add_child(chunk)
+				else:
+					var capital := _mesh(_box(rad * 2.5, 0.35, rad * 2.5), ruin_dark)
+					capital.position.y = h + 0.12
+					n.add_child(capital)
+				var mp := _mesh(_ico(rad * 1.05), moss)
+				mp.scale = Vector3(1.0, 0.3, 1.0)
+				mp.position.y = h + (0.3 if not bool(sc["broken"]) else 0.15)
+				n.add_child(mp)
+				var vine := _mesh(_box(0.12, h * 0.7, 0.05), moss)
+				vine.position = Vector3(0.0, h * 0.4, rad * 0.95)
+				n.add_child(vine)
+			"wall":
+				var a: Vector3 = sc["a"]
+				var b: Vector3 = sc["b"]
+				var h: float = float(sc["h"])
+				var length: float = Vector2(b.x - a.x, b.z - a.z).length()
+				var dir: Vector3 = Vector3(b.x - a.x, 0.0, b.z - a.z).normalized()
+				var n := Node3D.new()
+				n.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), (a + b) * 0.5)
+				add_child(n)
+				# courses of blocks, the top course broken in steps
+				var courses: int = maxi(2, int(h / 0.45))
+				for k: int in courses:
+					var top_course: bool = k == courses - 1
+					var cl: float = length * (0.7 if top_course else 1.0)
+					var blk := _mesh(_box(float(sc["t"]) - 0.04 * float(k % 2), 0.43, cl), ruin if k % 2 == 0 else ruin_dark)
+					blk.position = Vector3(0.0, 0.22 + 0.45 * float(k), (length - cl) * 0.5 * (1.0 if k % 2 == 0 else -1.0) * (1.0 if top_course else 0.0))
+					n.add_child(blk)
+				var mp := _mesh(_box(float(sc["t"]) + 0.08, 0.1, length * 0.6), moss)
+				mp.position.y = 0.45 * float(courses) + 0.02
+				n.add_child(mp)
+			"block":
+				var s: float = float(sc["s"])
+				var blk := _mesh(_box(s * 1.6, s * 1.1, s * 1.3), ruin)
+				blk.position = sc["pos"] + Vector3(0.0, s * 0.45, 0.0)
+				blk.rotation = Vector3(0.12, float(sc["rot"]), 0.08)
+				add_child(blk)
+			"mushroom":
+				var n := Node3D.new()
+				n.position = sc["pos"]
+				n.rotation = Vector3(float(sc["tilt"]), float(sc["rot"]), float(sc["tilt"]) * 0.5)
+				add_child(n)
+				var h: float = float(sc["h"])
+				var stalk: float = float(sc["stalk"])
+				var cap: float = float(sc["cap"])
+				var st := CylinderMesh.new()
+				st.top_radius = stalk * 0.8
+				st.bottom_radius = stalk * 1.15
+				st.height = h
+				st.radial_segments = 10
+				var stm := _mesh(st, stalk_m)
+				stm.position.y = h * 0.5
+				n.add_child(stm)
+				var skirt := _mesh(_cyl(stalk * 1.6, 0.06), stalk_m)
+				skirt.position.y = h * 0.72
+				n.add_child(skirt)
+				var dome := SphereMesh.new()
+				dome.radius = cap
+				dome.height = cap * 1.1
+				dome.radial_segments = 16
+				dome.rings = 8
+				dome.is_hemisphere = true
+				var cm := _mesh(dome, cap_m)
+				cm.position.y = h - cap * 0.08
+				n.add_child(cm)
+				var under := _mesh(_cyl(cap * 0.97, 0.05), stalk_m)
+				under.position.y = h - cap * 0.08
+				n.add_child(under)
+				for k: int in 6:
+					var a: float = float(k) / 6.0 * TAU + float(k) * 0.4
+					var rr: float = cap * (0.35 + 0.35 * float(k % 2))
+					var spot := _mesh(_ico(cap * 0.11), spot_m)
+					var up: float = sqrt(maxf(0.0, cap * cap - rr * rr)) * 0.55
+					spot.position = Vector3(sin(a) * rr, h - cap * 0.08 + up, cos(a) * rr)
+					spot.scale = Vector3(1.0, 0.35, 1.0)
+					n.add_child(spot)
+			"daisy":
+				var n := Node3D.new()
+				n.position = sc["pos"]
+				add_child(n)
+				var h: float = float(sc["h"])
+				var lean: Vector2 = sc["lean"]
+				var stem := _mesh(_cyl(0.07, h), stem_m)
+				stem.position.y = h * 0.5
+				n.add_child(stem)
+				n.rotation = Vector3(lean.x, float(sc["rot"]), lean.y)
+				for k: int in 2:
+					var leaf := _mesh(_ico(0.3), stem_m)
+					leaf.scale = Vector3(0.35, 0.12, 1.4)
+					var a: float = float(k) * PI + 0.6
+					leaf.position = Vector3(sin(a) * 0.35, h * (0.25 + 0.2 * float(k)), cos(a) * 0.35)
+					leaf.rotation.y = a
+					n.add_child(leaf)
+				var bloom: float = float(sc["bloom"])
+				var head := Node3D.new()
+				head.position.y = h
+				head.rotation.x = 0.35
+				n.add_child(head)
+				for k: int in 12:
+					var a: float = float(k) / 12.0 * TAU
+					var petal := _mesh(_ico(bloom * 0.28), petal_m)
+					petal.scale = Vector3(0.45, 0.12, 1.5)
+					petal.position = Vector3(sin(a) * bloom * 0.55, 0.0, cos(a) * bloom * 0.55)
+					petal.rotation.y = a
+					head.add_child(petal)
+				var heart := _mesh(_ico(bloom * 0.3), heart_m[int(sc["c"]) % 3])
+				heart.scale = Vector3(1.0, 0.5, 1.0)
+				heart.position.y = 0.05
+				head.add_child(heart)
+
+
+## Dither the material away close to the camera (tall tops never hide the gnome).
+static func _fade(m: StandardMaterial3D) -> StandardMaterial3D:
+	m.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_DITHER
+	m.distance_fade_min_distance = 3.5
+	m.distance_fade_max_distance = 8.0
+	return m
+
+
 func _build_plants(w: SimWorld) -> void:
-	# stalks and leaves as one instanced mesh: a tall thin blade, scaled per instance
+	# one instanced mesh per shape; colour per instance
+	var blade := _blade_mesh()
+	var clover := _clover_mesh()
+	var bloom := _bloom_mesh()
+	var blades: Array = []
+	var clovers: Array = []
+	var blooms: Array = []
+	var leaf: Color = pal.col("scatter_leaf").srgb_to_linear()
+	var stalk: Color = pal.col("scatter_stalk").srgb_to_linear()
+	var fern: Color = pal.col("fern").srgb_to_linear()
+	var clov: Color = pal.col("terrain_clover").lightened(0.08).srgb_to_linear()
+	var flowers: Array[Color] = [pal.col("flower_a").srgb_to_linear(), pal.col("flower_b").srgb_to_linear(), pal.col("flower_c").srgb_to_linear()]
+	for pl: Dictionary in w.plants:
+		var c: Vector3 = pl["pos"]
+		var s: float = float(pl["s"])
+		var kind: String = str(pl["kind"])
+		var rot: float = float(pl["rot"])
+		var b := Basis(Vector3.UP, rot)
+		match kind:
+			"leaf":
+				blades.append([Transform3D(b.scaled(Vector3(s * 2.0, s * 0.6, s * 1.8)), c), leaf])
+			"stalk":
+				blades.append([Transform3D(b.scaled(Vector3(s * 0.8, s * 0.9, s * 0.8)), c), stalk])
+			"tuft":
+				# three thin blades fanned out
+				for k: int in 3:
+					var bk := Basis(Vector3.UP, rot + float(k) * 2.1).scaled(Vector3(s * 0.45, s * (0.55 + 0.15 * float(k)), s * 0.45))
+					blades.append([Transform3D(bk, c), leaf.lerp(stalk, 0.3 * float(k))])
+			"fern":
+				for k: int in 5:
+					var bk := (Basis(Vector3.UP, rot + float(k) * 1.257) * Basis(Vector3.RIGHT, 0.5)).scaled(Vector3(s * 0.9, s * 0.5, s * 1.4))
+					blades.append([Transform3D(bk, c), fern])
+			"clover":
+				clovers.append([Transform3D(b.scaled(Vector3.ONE * s * 0.9), c), clov])
+			"flower":
+				blades.append([Transform3D(b.scaled(Vector3(s * 0.35, s * 0.7, s * 0.35)), c), stalk])
+				var top: Vector3 = c + b * Vector3(0.0, s * 0.7 * 1.5, s * 0.35 * 0.55)
+				blooms.append([Transform3D(b.scaled(Vector3.ONE * s * 0.7), top), flowers[int(pl.get("c", 0)) % 3]])
+	_plants = _instanced(blade, blades)
+	_instanced(clover, clovers)
+	_instanced(bloom, blooms)
+
+
+func _instanced(mesh: Mesh, rows: Array) -> MultiMeshInstance3D:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = mesh
+	mm.instance_count = rows.size()
+	for i: int in rows.size():
+		var row: Array = rows[i]
+		mm.set_instance_transform(i, row[0])
+		mm.set_instance_color(i, row[1])
+	var mi := MultiMeshInstance3D.new()
+	mi.multimesh = mm
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 0.95
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	add_child(mi)
+	return mi
+
+
+## A tall thin blade that curls forward at the top.
+static func _blade_mesh() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var pts: Array[Vector3] = [Vector3(-0.08, 0.0, 0.0), Vector3(0.08, 0.0, 0.0), Vector3(0.05, 1.0, 0.25), Vector3(-0.05, 1.0, 0.25), Vector3(0.0, 1.5, 0.55)]
@@ -113,35 +429,39 @@ func _build_plants(w: SimWorld) -> void:
 	_tri(st, pts[0], pts[3], pts[2])
 	_tri(st, pts[3], pts[4], pts[2])
 	st.generate_normals()
-	var mesh: ArrayMesh = st.commit()
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.use_colors = true
-	mm.mesh = mesh
-	mm.instance_count = w.plants.size()
-	var leaf: Color = pal.col("scatter_leaf").srgb_to_linear()
-	var stalk: Color = pal.col("scatter_stalk").srgb_to_linear()
-	for i: int in w.plants.size():
-		var pl: Dictionary = w.plants[i]
-		var c: Vector3 = pl["pos"]
-		var s: float = float(pl["s"])
-		var kind: String = str(pl["kind"])
-		var b := Basis(Vector3.UP, float(pl["rot"]))
-		if kind == "leaf":
-			b = b.scaled(Vector3(s * 2.0, s * 0.6, s * 1.8))
-		else:
-			b = b.scaled(Vector3(s * 0.8, s * 0.9, s * 0.8))
-		mm.set_instance_transform(i, Transform3D(b, c))
-		mm.set_instance_color(i, leaf if kind == "leaf" else stalk)
-	_plants = MultiMeshInstance3D.new()
-	_plants.multimesh = mm
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.roughness = 0.95
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_plants.material_override = mat
-	_plants.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	add_child(_plants)
+	return st.commit()
+
+
+## Three round leaves on short stalks, lying almost flat.
+static func _clover_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k: int in 3:
+		var a: float = float(k) / 3.0 * TAU
+		var c := Vector3(sin(a) * 0.16, 0.12, cos(a) * 0.16)
+		var prev: Vector3 = c + Vector3(0.14, 0.0, 0.0)
+		for j: int in range(1, 9):
+			var t: float = float(j) / 8.0 * TAU
+			var p: Vector3 = c + Vector3(cos(t) * 0.14, sin(t) * 0.02, sin(t) * 0.14)
+			_tri(st, c, p, prev)
+			prev = p
+	st.generate_normals()
+	return st.commit()
+
+
+## A small five-petal flower head.
+static func _bloom_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var c := Vector3.ZERO
+	for k: int in 5:
+		var a: float = float(k) / 5.0 * TAU
+		var dir := Vector3(sin(a), 0.15, cos(a))
+		var side := Vector3(cos(a), 0.0, -sin(a)) * 0.07
+		_tri(st, c, c + dir * 0.12 + side, c + dir * 0.2)
+		_tri(st, c, c + dir * 0.2, c + dir * 0.12 - side)
+	st.generate_normals()
+	return st.commit()
 
 
 func _build_vent(z: Entities.HazardZone) -> Node3D:
@@ -337,7 +657,7 @@ func update(w: SimWorld, alpha: float, t: float) -> void:
 			var m: StandardMaterial3D = g.material_override
 			m.albedo_color.a = 0.08 + 0.14 * absf(sin(t * 9.0 + f.position.x)) * (0.6 + 0.4 * sin(t * 23.0 + f.position.z))
 			g.scale.y = 1.0 + 0.15 * sin(t * 2.0 + f.position.x)
-	_sync_shrines(w)
+	_sync_shrines(w, dt)
 	_sync_objects(w, alpha)
 	_sync_enemies(w, alpha, t, dt)
 	_sync_gates(w)
@@ -353,47 +673,194 @@ func update(w: SimWorld, alpha: float, t: float) -> void:
 		light.light_energy = 4.5 + 2.5 * s
 
 
-func _sync_shrines(w: SimWorld) -> void:
+func _sync_shrines(w: SimWorld, dt: float) -> void:
 	for sh: Entities.Shrine in w.shrines:
-		if _shrines.has(sh.id):
-			continue
-		var n := Node3D.new()
-		n.position = sh.pos
-		add_child(n)
-		var tint: Color = pal.col(tables.sprig(sh.type_id).colour_key)
-		var dome := SphereMesh.new()
-		dome.radius = 1.05
-		dome.height = 1.9
-		dome.radial_segments = 10
-		dome.rings = 6
-		var body := _mesh(dome, _mat(pal.col("shrine_body"), 0.8, 0.0))
-		body.position.y = 1.55
-		n.add_child(body)
-		for i: int in 3:
-			var leg := _mesh(_cyl(0.11, 1.2), _mat(pal.col("scatter_stalk"), 0.9, 0.0))
-			var ang: float = float(i) / 3.0 * TAU
-			leg.position = Vector3(sin(ang) * 0.7, 0.55, cos(ang) * 0.7)
-			leg.rotation = Vector3(cos(ang) * 0.25, 0.0, -sin(ang) * 0.25)
-			n.add_child(leg)
-		var cap := _mesh(_ico(0.42), _mat(tint, 0.5, 0.0, tint, 1.6))
-		cap.position.y = 2.75
-		n.add_child(cap)
-		var band := TorusMesh.new()
-		band.inner_radius = 0.95
-		band.outer_radius = 1.12
-		band.rings = 24
-		band.ring_segments = 5
-		var ring := _mesh(band, _mat(tint, 0.6, 0.0, tint, 0.9))
-		ring.position.y = 1.35
-		n.add_child(ring)
-		var light := OmniLight3D.new()
-		light.light_color = tint
-		light.light_energy = 2.2
-		light.omni_range = 7.0
-		light.position.y = 3.0
-		light.shadow_enabled = false
-		n.add_child(light)
-		_shrines[sh.id] = n
+		var n: Node3D = _shrines.get(sh.id)
+		if n == null:
+			n = _build_shrine(sh.type_id, sh.pos, true)
+			_shrines[sh.id] = n
+		var em: Node3D = n.get_node("emblem")
+		em.rotation.y += dt * 0.9
+		em.position.y = 3.25 + sin(_last_t * 1.6 + float(sh.id)) * 0.08
+		var label: Label3D = n.get_node("label")
+		var t: Types.SprigType = tables.sprig(sh.type_id)
+		var inside: int = int(w.hold.stored.get(sh.type_id, 0))
+		var text: String = "%s\n%d inside" % [(t.name if t != null else sh.type_id).to_upper(), inside]
+		if label.text != text:
+			label.text = text
+
+
+## A shrine, rooted at the Hold or still waiting in the field. Owner verdict 2026-10-16: "more
+## clear which one goes which". The body is the type's colour, a ring on the ground marks it,
+## and an emblem with a shape of its own turns over the top (flame, block, bolt, drop, thorn
+## star, wings, snowflake, acorn), so two shrines never read alike even in poor light.
+func _build_shrine(type_id: String, at: Vector3, rooted: bool) -> Node3D:
+	var n := Node3D.new()
+	n.position = at
+	add_child(n)
+	var tint: Color = pal.col(tables.sprig(type_id).colour_key)
+	var sc: float = 1.0 if rooted else 0.8
+	var holder := Node3D.new()
+	holder.scale = Vector3.ONE * sc
+	n.add_child(holder)
+	var disc := _mesh(_cyl(1.75, 0.03), _mat(tint, 0.8, 0.0, tint, 0.6))
+	var dm: StandardMaterial3D = disc.material_override
+	dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	dm.albedo_color.a = 0.35
+	disc.position.y = 0.03
+	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	holder.add_child(disc)
+	var dome := SphereMesh.new()
+	dome.radius = 1.05
+	dome.height = 1.9
+	dome.radial_segments = 14
+	dome.rings = 8
+	var body_c: Color = tint.lerp(pal.col("shrine_body"), 0.28)
+	var body := _mesh(dome, _mat(body_c, 0.55, 0.05, tint, 0.18))
+	body.position.y = 1.55
+	holder.add_child(body)
+	for i: int in 3:
+		var leg := _mesh(_cyl(0.11, 1.2), _mat(pal.col("scatter_stalk").darkened(0.2), 0.9, 0.0))
+		var ang: float = float(i) / 3.0 * TAU
+		leg.position = Vector3(sin(ang) * 0.7, 0.55, cos(ang) * 0.7)
+		leg.rotation = Vector3(cos(ang) * 0.25, 0.0, -sin(ang) * 0.25)
+		holder.add_child(leg)
+	var band := TorusMesh.new()
+	band.inner_radius = 0.98
+	band.outer_radius = 1.12
+	band.rings = 28
+	band.ring_segments = 6
+	var ring := _mesh(band, _mat(pal.col("shrine_glow"), 0.4, 0.3, pal.col("shrine_glow"), 0.7))
+	ring.position.y = 1.35
+	holder.add_child(ring)
+	var em := _emblem(type_id, tint)
+	em.name = "emblem"
+	em.position.y = 3.25 * sc
+	n.add_child(em)
+	var light := OmniLight3D.new()
+	light.light_color = tint
+	light.light_energy = 2.4
+	light.omni_range = 8.0
+	light.position.y = 3.0
+	light.shadow_enabled = false
+	n.add_child(light)
+	var label := Label3D.new()
+	label.name = "label"
+	var t: Types.SprigType = tables.sprig(type_id)
+	label.text = (t.name if t != null else type_id).to_upper()
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	# the same size on screen at any zoom: readable far off, never a wall of text up close
+	label.fixed_size = true
+	label.font_size = 40
+	label.pixel_size = 0.00072
+	label.outline_size = 10
+	label.modulate = tint.lightened(0.25)
+	label.outline_modulate = Color(0.04, 0.05, 0.06, 0.9)
+	label.position.y = 4.35 * sc
+	label.no_depth_test = false
+	label.line_spacing = -6.0
+	n.add_child(label)
+	return n
+
+
+## The type's emblem: a small glowing shape of its own, about 0.9 m across.
+func _emblem(type_id: String, tint: Color) -> Node3D:
+	var e := Node3D.new()
+	var glow := _mat(tint, 0.35, 0.1, tint, 1.8)
+	var pale := _mat(tint.lightened(0.45), 0.35, 0.1, tint, 1.2)
+	match type_id:
+		"ember": # a flame: three stacked teardrops leaning together
+			for k: int in 3:
+				var f := CylinderMesh.new()
+				f.top_radius = 0.0
+				f.bottom_radius = 0.3 - 0.07 * float(k)
+				f.height = 0.9 - 0.18 * float(k)
+				f.radial_segments = 8
+				var m := _mesh(f, glow if k != 1 else pale)
+				m.position = Vector3(0.12 * float(k - 1), 0.45 - 0.05 * float(k), 0.0)
+				m.rotation.z = -0.25 * float(k - 1)
+				e.add_child(m)
+			var base := _mesh(_ico(0.3), glow)
+			base.position.y = 0.12
+			e.add_child(base)
+		"stone": # a heavy block on its corner
+			var b := _mesh(_box(0.55, 0.55, 0.55), _mat(tint.lightened(0.15), 0.8, 0.0, tint, 0.6))
+			b.rotation = Vector3(0.62, 0.0, 0.62)
+			b.position.y = 0.4
+			e.add_child(b)
+		"spark": # a bolt: two slanted bars and a point
+			for k: int in 2:
+				var bar := _mesh(_box(0.16, 0.5, 0.12), glow)
+				bar.position = Vector3(0.1 - 0.2 * float(k), 0.62 - 0.4 * float(k), 0.0)
+				bar.rotation.z = 0.5
+				e.add_child(bar)
+			var mid := _mesh(_box(0.45, 0.12, 0.12), glow)
+			mid.position.y = 0.42
+			mid.rotation.z = 0.2
+			e.add_child(mid)
+		"tide": # a drop: a ball with a point on top
+			var ball := _mesh(_ico(0.3), glow)
+			ball.position.y = 0.3
+			e.add_child(ball)
+			var tip := CylinderMesh.new()
+			tip.top_radius = 0.0
+			tip.bottom_radius = 0.27
+			tip.height = 0.45
+			tip.radial_segments = 8
+			var tm := _mesh(tip, glow)
+			tm.position.y = 0.66
+			e.add_child(tm)
+		"thorn": # a star of spikes
+			for k: int in 6:
+				var a: float = float(k) / 6.0 * TAU
+				var sp := CylinderMesh.new()
+				sp.top_radius = 0.0
+				sp.bottom_radius = 0.09
+				sp.height = 0.5
+				sp.radial_segments = 5
+				var m := _mesh(sp, pale)
+				m.position = Vector3(sin(a) * 0.22, 0.42 + cos(a) * 0.22, 0.0)
+				m.rotation.z = -a
+				e.add_child(m)
+			var core := _mesh(_ico(0.16), glow)
+			core.position.y = 0.42
+			e.add_child(core)
+		"moth": # a pair of wings
+			for sx: float in [-1.0, 1.0]:
+				var wing := _mesh(_ico(0.3), pale)
+				wing.scale = Vector3(1.0, 0.75, 0.18)
+				wing.position = Vector3(0.26 * sx, 0.5, 0.0)
+				wing.rotation.z = 0.35 * sx
+				e.add_child(wing)
+			var body := _mesh(_capsule(0.07, 0.45), glow)
+			body.position.y = 0.45
+			e.add_child(body)
+		"frost": # a snowflake: three crossed bars
+			for k: int in 3:
+				var bar := _mesh(_box(0.85, 0.09, 0.09), pale)
+				bar.position.y = 0.45
+				bar.rotation.z = float(k) / 3.0 * PI
+				e.add_child(bar)
+			var core := _mesh(_ico(0.12), glow)
+			core.position.y = 0.45
+			e.add_child(core)
+		"oak": # an acorn: a nut and its cap
+			var nut := _mesh(_ico(0.28), glow)
+			nut.scale = Vector3(1.0, 1.25, 1.0)
+			nut.position.y = 0.32
+			e.add_child(nut)
+			var cap := _mesh(_ico(0.31), _mat(tint.darkened(0.35), 0.9, 0.0))
+			cap.scale = Vector3(1.0, 0.5, 1.0)
+			cap.position.y = 0.6
+			e.add_child(cap)
+			var stem := _mesh(_cyl(0.035, 0.18), _mat(tint.darkened(0.45), 0.9, 0.0))
+			stem.position.y = 0.76
+			e.add_child(stem)
+		_:
+			var orb := _mesh(_ico(0.36), glow)
+			orb.position.y = 0.4
+			e.add_child(orb)
+	return e
 
 
 func _sync_objects(w: SimWorld, alpha: float) -> void:
@@ -468,18 +935,10 @@ func _make_object(o: Entities.WorldObject) -> Node3D:
 			body.scale = Vector3(1.2, 0.6, 1.0)
 			n.add_child(body)
 		"shrine":
-			var tint: Color = pal.col(tables.sprig(o.shrine_type).colour_key)
-			var dome := SphereMesh.new()
-			dome.radius = 0.85
-			dome.height = 1.5
-			dome.radial_segments = 10
-			dome.rings = 6
-			var body := _mesh(dome, _mat(pal.col("shrine_body").darkened(0.2), 0.8, 0.0))
-			body.position.y = 0.7
-			n.add_child(body)
-			var cap := _mesh(_ico(0.34), _mat(tint, 0.5, 0.0, tint, 1.2))
-			cap.position.y = 1.6
-			n.add_child(cap)
+			n.queue_free()
+			n = _build_shrine(o.shrine_type, Vector3.ZERO, false)
+			var lb: Label3D = n.get_node("label")
+			lb.text = (tables.sprig(o.shrine_type).name + " shrine").to_upper()
 		_:
 			var box := _mesh(_box(o.radius, o.radius, o.radius), _mat(pal.col("pellet_body"), 0.7, 0.0))
 			box.position.y = o.radius * 0.5
@@ -509,44 +968,117 @@ func _sync_enemies(w: SimWorld, alpha: float, t: float, dt: float) -> void:
 		if ice != null:
 			ice.visible = e.state == Entities.Enemy.State.FROZEN
 		var et: Types.EnemyType = w.enemy_type(e)
-		# the wind-up is on the body: it rears and pales, then snaps forward
-		if e.state == Entities.Enemy.State.TELEGRAPH:
-			body.rotation.x = -e.wind * 0.45
-			body.position.y = e.wind * 0.25
-			body.scale = Vector3(1.0 + e.wind * 0.08, 1.0 + e.wind * 0.12, 1.0 - e.wind * 0.05)
-		elif e.state == Entities.Enemy.State.RECOVER:
-			body.rotation.x = 0.35 * e.wind * 3.0
-			body.position.y = 0.0
-			body.scale = Vector3.ONE
-		elif e.state == Entities.Enemy.State.SHAKE:
-			body.rotation.x = 0.0
-			body.rotation.z = sin(t * 40.0) * 0.25
-			body.position.y = absf(sin(t * 30.0)) * 0.12
-			body.scale = Vector3.ONE
-		elif e.state == Entities.Enemy.State.FROZEN:
-			body.rotation.z = 0.0
-			body.position.y = 0.0
-			body.scale = Vector3.ONE
-		elif e.state == Entities.Enemy.State.SLEEP:
-			body.rotation.x = 0.0
-			body.rotation.z = 0.0
-			body.position.y = -0.08 + sin(t * 1.3 + float(e.id)) * 0.03
-			body.scale = Vector3(1.0, 0.92 + sin(t * 1.3 + float(e.id)) * 0.03, 1.0)
-		else:
-			body.rotation.x = 0.0
-			var mv: float = Vector2(e.pos.x - e.prev.x, e.pos.z - e.prev.z).length() / SimWorld.FIXED_DT
-			var gait: float = clampf(mv / maxf(0.5, et.speed), 0.0, 1.0)
-			body.rotation.z = sin(t * 12.0 + float(e.id)) * 0.08 * gait
-			body.position.y = absf(sin(t * 12.0 + float(e.id))) * 0.06 * gait
-			body.scale = Vector3.ONE
+		var under: bool = e.state == Entities.Enemy.State.BURROW
+		body.visible = not under
+		var mound: Node3D = n.get_node_or_null("mound")
+		if mound != null:
+			mound.visible = under
+			if under:
+				var shake: float = e.wind
+				mound.scale = Vector3.ONE * (1.0 + shake * 0.35)
+				mound.rotation.z = sin(t * 30.0) * 0.12 * shake
+				mound.position.y = -0.05 + absf(sin(t * 9.0 + float(e.id))) * 0.04
+		body.rotation = Vector3.ZERO
+		body.position = Vector3.ZERO
+		body.scale = Vector3.ONE
+		var swell: Node3D = body.get_node_or_null("swell")
+		if swell != null:
+			swell.scale = Vector3.ONE
+		match e.state:
+			Entities.Enemy.State.TELEGRAPH:
+				match et.attack:
+					"breath", "gust":
+						# it swells, drawing breath
+						var s: float = 1.0 + e.wind * 0.22
+						if swell != null:
+							swell.scale = Vector3(s, s, s)
+						else:
+							body.scale = Vector3(s, s, s)
+						body.rotation.x = -e.wind * 0.12
+					"leap":
+						# a deep crouch before the jump
+						body.scale = Vector3(1.0 + e.wind * 0.15, 1.0 - e.wind * 0.3, 1.0 + e.wind * 0.1)
+					"charge":
+						# head down, pawing the ground
+						body.rotation.x = e.wind * 0.22
+						body.position.z = -e.wind * 0.15
+						body.rotation.z = sin(t * 26.0) * 0.06 * e.wind
+					_:
+						# the bite: it rears and pales, then snaps forward
+						body.rotation.x = -e.wind * 0.45
+						body.position.y = e.wind * 0.25
+						body.scale = Vector3(1.0 + e.wind * 0.08, 1.0 + e.wind * 0.12, 1.0 - e.wind * 0.05)
+			Entities.Enemy.State.LEAP:
+				body.scale = Vector3(0.9, 1.2, 0.95)
+				body.rotation.x = -0.25
+			Entities.Enemy.State.RUSH:
+				body.rotation.x = 0.18
+				body.position.y = absf(sin(t * 22.0)) * 0.1
+			Entities.Enemy.State.RECOVER:
+				if e.dazed:
+					# dizzy: a slow wobble, wide open
+					body.rotation.z = sin(t * 7.0) * 0.16
+					body.rotation.x = cos(t * 5.0) * 0.08
+				elif et.attack == "bite" or et.attack == "burrow":
+					body.rotation.x = 0.35 * e.wind * 3.0
+			Entities.Enemy.State.SHAKE:
+				body.rotation.z = sin(t * 40.0) * 0.25
+				body.position.y = absf(sin(t * 30.0)) * 0.12
+			Entities.Enemy.State.SLEEP:
+				body.position.y = -0.08 + sin(t * 1.3 + float(e.id)) * 0.03
+				body.scale = Vector3(1.0, 0.92 + sin(t * 1.3 + float(e.id)) * 0.03, 1.0)
+			Entities.Enemy.State.FROZEN, Entities.Enemy.State.BURROW:
+				pass
+			_:
+				var mv: float = Vector2(e.pos.x - e.prev.x, e.pos.z - e.prev.z).length() / SimWorld.FIXED_DT
+				var gait: float = clampf(mv / maxf(0.5, et.speed), 0.0, 1.0)
+				if et.attack == "leap":
+					# toads hop
+					body.position.y = absf(sin(t * 7.0 + float(e.id))) * 0.35 * gait
+				else:
+					body.rotation.z = sin(t * 12.0 + float(e.id)) * 0.08 * gait
+					body.position.y = absf(sin(t * 12.0 + float(e.id))) * 0.06 * gait
+		# the glowing part (grub back plate, hog snout, shellback brow) burns brighter with the wind-up
 		var plate: MeshInstance3D = n.get_node_or_null("body/plate")
 		if plate != null:
 			var m: StandardMaterial3D = plate.material_override
-			m.emission_energy_multiplier = e.wind * 2.5
+			m.emission_energy_multiplier = e.wind * 2.5 + (0.3 if et.attack == "breath" else 0.0)
+		# breath and gust: a cone that hangs in the air for a moment after the strike
+		var cone: MeshInstance3D = n.get_node_or_null("cone")
+		if cone != null:
+			var life: float = 0.65
+			var on: bool = e.strike_t < life and e.state != Entities.Enemy.State.BURROW
+			cone.visible = on
+			if on:
+				var cm: StandardMaterial3D = cone.material_override
+				cm.albedo_color.a = 0.45 * (1.0 - e.strike_t / life)
+				var g: float = 0.6 + 0.4 * (e.strike_t / life)
+				cone.scale = Vector3(g, 1.0, g)
+		# where the strike will land: the toad's shadow ring, the mole's rumble, the charge lane
+		var mark: MeshInstance3D = n.get_node_or_null("mark")
+		if mark != null:
+			var show_mark: bool = false
+			if et.attack == "leap" and (e.state == Entities.Enemy.State.TELEGRAPH or e.state == Entities.Enemy.State.LEAP):
+				show_mark = true
+				mark.global_position = e.aim + Vector3(0.0, 0.06, 0.0)
+				var k: float = 0.75 + 0.25 * sin(t * 14.0)
+				mark.scale = Vector3(et.leap_radius * k, 1.0, et.leap_radius * k)
+			elif et.attack == "burrow" and under and e.emerge >= 0.0:
+				show_mark = true
+				mark.global_position = e.pos + Vector3(0.0, 0.06, 0.0)
+				var k2: float = (et.radius + 0.5) * (0.6 + 0.4 * e.wind)
+				mark.scale = Vector3(k2, 1.0, k2)
+			mark.visible = show_mark
+		var lane: MeshInstance3D = n.get_node_or_null("lane")
+		if lane != null:
+			lane.visible = e.state == Entities.Enemy.State.TELEGRAPH
+			if lane.visible:
+				var lm: StandardMaterial3D = lane.material_override
+				lm.albedo_color.a = 0.15 + 0.3 * e.wind
 		var bar: MeshInstance3D = n.get_node("hp")
 		var frac: float = e.hp / maxf(1.0, e.max_hp)
 		bar.scale.x = maxf(0.02, frac)
-		bar.visible = frac < 0.999 and e.state != Entities.Enemy.State.SLEEP
+		bar.visible = frac < 0.999 and e.state != Entities.Enemy.State.SLEEP and not under
 		bar.position.y = et.height + 0.55
 	for id: Variant in _enemies.keys():
 		if not seen.has(id):
@@ -563,64 +1095,72 @@ func _make_enemy(e: Entities.Enemy) -> Node3D:
 	body.name = "body"
 	n.add_child(body)
 	var tint: Color = pal.col(et.colour_key)
-	if e.type_id == "field_beetle":
-		var shell := _mesh(_ico(et.radius), _mat(pal.col("enemy_beetle_shell"), 0.5, 0.1))
-		shell.scale = Vector3(1.0, 0.55, 1.3)
-		shell.position.y = et.height * 0.6
-		body.add_child(shell)
-		var under := _mesh(_ico(et.radius * 0.8), _mat(tint, 0.9, 0.0))
-		under.scale = Vector3(1.0, 0.5, 1.2)
-		under.position.y = et.height * 0.4
-		body.add_child(under)
-		var head := _mesh(_ico(et.radius * 0.45), _mat(tint, 0.9, 0.0))
-		head.position = Vector3(0.0, et.height * 0.5, et.radius * 1.15)
-		body.add_child(head)
-		for i: int in 6:
-			var leg := _mesh(_cyl(0.025, 0.4), _mat(tint, 0.9, 0.0))
-			var side: float = -1.0 if i % 2 == 0 else 1.0
-			leg.position = Vector3(side * et.radius * 0.9, 0.15, -0.25 + 0.25 * float(i / 2))
-			leg.rotation.z = side * 0.7
-			body.add_child(leg)
-	elif e.type_id == "night_stalker":
-		var torso := _mesh(_capsule(et.radius * 0.7, et.height * 1.2), _mat(tint, 0.9, 0.0))
-		torso.rotation.x = PI * 0.5
-		torso.position.y = et.height * 0.55
-		body.add_child(torso)
-		for sx: float in [-0.2, 0.2]:
-			var eye := _mesh(_ico(0.07), _mat(pal.col("enemy_night_eye"), 0.3, 0.0, pal.col("enemy_night_eye"), 4.0))
-			eye.position = Vector3(sx, et.height * 0.7, et.radius * 0.7)
-			body.add_child(eye)
-		for i: int in 4:
-			var leg := _mesh(_cyl(0.04, 0.7), _mat(tint, 0.9, 0.0))
-			leg.position = Vector3(-0.3 + 0.2 * float(i), 0.3, -0.3 + 0.2 * float(i % 2))
-			leg.rotation.z = 0.5 if i % 2 == 0 else -0.5
-			body.add_child(leg)
-	else:
-		var belly := _mesh(_ico(et.radius), _mat(pal.col("enemy_grub_belly"), 0.9, 0.0))
-		belly.scale = Vector3(1.0, 0.75, 1.25)
-		belly.position.y = et.height * 0.5
-		body.add_child(belly)
-		var back := _mesh(_ico(et.radius * 0.95), _mat(tint, 0.85, 0.0))
-		back.scale = Vector3(1.0, 0.6, 1.2)
-		back.position.y = et.height * 0.68
-		body.add_child(back)
-		var plate := _mesh(_box(et.radius * 0.9, 0.12, et.radius * 1.3), _mat(pal.col("pellet_body"), 0.7, 0.0, pal.col("pellet_body"), 0.0))
-		plate.name = "plate"
-		plate.position.y = et.height * 0.98
-		body.add_child(plate)
-		var head := _mesh(_ico(et.radius * 0.62), _mat(pal.col("enemy_grub_belly"), 0.9, 0.0))
-		head.position = Vector3(0.0, et.height * 0.45, et.radius * 1.05)
-		body.add_child(head)
-		for sx: float in [-0.28, 0.28]:
-			var eye := _mesh(_ico(0.12), _mat(Color(0.1, 0.08, 0.08), 0.3, 0.0))
-			eye.position = Vector3(sx, et.height * 0.7, et.radius * 1.45)
-			body.add_child(eye)
-		for i: int in 6:
-			var leg := _mesh(_cyl(0.05, 0.5), _mat(tint.darkened(0.3), 0.9, 0.0))
-			var side: float = -1.0 if i % 2 == 0 else 1.0
-			leg.position = Vector3(side * et.radius * 0.9, 0.22, -0.5 + 0.5 * float(i / 2))
-			leg.rotation.z = side * 0.6
-			body.add_child(leg)
+	match e.type_id:
+		"field_beetle":
+			_beetle(body, et, tint)
+		"night_stalker":
+			_stalker(body, et, tint)
+		"cinder_hog", "mire_hog":
+			_hog(body, et, tint, pal.col("hazard_poison") if et.breath_hazard == "poison" else pal.col("vent_fire"))
+		"pounce_toad":
+			_toad(body, et, tint)
+		"shellback":
+			_shellback(body, et, tint)
+		"gale_puff":
+			_puff_body(body, et, tint)
+		"hollow_mole":
+			_mole(n, body, et, tint)
+		_:
+			_grub(body, et, tint)
+	if et.attack == "breath" or et.attack == "gust":
+		var reach: float = et.attack_range + 0.4
+		var cm := CylinderMesh.new()
+		cm.top_radius = reach * tan(deg_to_rad(et.cone_deg * 0.5))
+		cm.bottom_radius = 0.15
+		cm.height = reach
+		cm.radial_segments = 14
+		cm.cap_top = false
+		cm.cap_bottom = false
+		var c: Color = Color(0.95, 0.97, 1.0)
+		if et.attack == "breath":
+			c = pal.col("hazard_poison") if et.breath_hazard == "poison" else pal.col("vent_fire")
+		var mat := _mat(c, 1.0, 0.0, c, 1.4)
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		var cone := _mesh(cm, mat)
+		cone.name = "cone"
+		cone.rotation.x = PI * 0.5
+		cone.position = Vector3(0.0, et.height * 0.5, et.radius * 0.6 + reach * 0.5)
+		cone.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cone.visible = false
+		n.add_child(cone)
+	if et.attack == "leap" or et.attack == "burrow":
+		var ring := TorusMesh.new()
+		ring.inner_radius = 0.86
+		ring.outer_radius = 1.0
+		ring.rings = 32
+		ring.ring_segments = 4
+		var rc: Color = pal.col("hud_warn")
+		var rmat := _mat(rc, 1.0, 0.0, rc, 2.0)
+		rmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		var mark := _mesh(ring, rmat)
+		mark.name = "mark"
+		mark.top_level = true
+		mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mark.visible = false
+		n.add_child(mark)
+	if et.attack == "charge":
+		var lc: Color = pal.col("hud_warn")
+		var lmat := _mat(lc, 1.0, 0.0, lc, 1.5)
+		lmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		lmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		var lane := _mesh(_box(et.radius * 2.0, 0.03, et.charge_distance), lmat)
+		lane.name = "lane"
+		lane.position = Vector3(0.0, 0.06, et.charge_distance * 0.5)
+		lane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		lane.visible = false
+		n.add_child(lane)
 	var bar := _mesh(_box(1.6, 0.08, 0.08), _mat(pal.col("hud_warn"), 0.5, 0.0, pal.col("hud_warn"), 1.5))
 	bar.name = "hp"
 	bar.position.y = et.height + 0.55
@@ -638,6 +1178,266 @@ func _make_enemy(e: Entities.Enemy) -> Node3D:
 	ice.visible = false
 	n.add_child(ice)
 	return n
+
+
+func _eyes(body: Node3D, at: Vector3, spread: float, r: float) -> void:
+	for sx: float in [-1.0, 1.0]:
+		var white := _mesh(_ico(r), _mat(Color(0.95, 0.94, 0.88), 0.4, 0.0))
+		white.position = at + Vector3(spread * sx, 0.0, 0.0)
+		body.add_child(white)
+		var pupil := _mesh(_ico(r * 0.55), _mat(Color(0.06, 0.05, 0.05), 0.2, 0.0))
+		pupil.position = at + Vector3(spread * sx, 0.0, r * 0.62)
+		body.add_child(pupil)
+
+
+func _legs(body: Node3D, et: Types.EnemyType, c: Color, count: int, len: float, splay: float, rad: float = 0.05) -> void:
+	for i: int in count:
+		var leg := _mesh(_cyl(rad, len), _mat(c, 0.9, 0.0))
+		var side: float = -1.0 if i % 2 == 0 else 1.0
+		var row: int = i / 2
+		var rows: int = maxi(1, count / 2)
+		var z: float = -et.radius * 0.6 + et.radius * 1.2 * (float(row) / float(maxi(1, rows - 1)) if rows > 1 else 0.5)
+		leg.position = Vector3(side * et.radius * 0.85, len * 0.4, z)
+		leg.rotation.z = side * splay
+		body.add_child(leg)
+
+
+func _beetle(body: Node3D, et: Types.EnemyType, tint: Color) -> void:
+	var shell := _mesh(_ico(et.radius), _mat(pal.col("enemy_beetle_shell"), 0.5, 0.1))
+	shell.scale = Vector3(1.0, 0.55, 1.3)
+	shell.position.y = et.height * 0.6
+	body.add_child(shell)
+	var under := _mesh(_ico(et.radius * 0.8), _mat(tint, 0.9, 0.0))
+	under.scale = Vector3(1.0, 0.5, 1.2)
+	under.position.y = et.height * 0.4
+	body.add_child(under)
+	var head := _mesh(_ico(et.radius * 0.45), _mat(tint, 0.9, 0.0))
+	head.position = Vector3(0.0, et.height * 0.5, et.radius * 1.15)
+	body.add_child(head)
+	_legs(body, et, tint, 6, 0.4, 0.7, 0.025)
+
+
+func _stalker(body: Node3D, et: Types.EnemyType, tint: Color) -> void:
+	var torso := _mesh(_capsule(et.radius * 0.7, et.height * 1.2), _mat(tint, 0.9, 0.0))
+	torso.rotation.x = PI * 0.5
+	torso.position.y = et.height * 0.55
+	body.add_child(torso)
+	for sx: float in [-0.2, 0.2]:
+		var eye := _mesh(_ico(0.07), _mat(pal.col("enemy_night_eye"), 0.3, 0.0, pal.col("enemy_night_eye"), 4.0))
+		eye.position = Vector3(sx, et.height * 0.7, et.radius * 0.7)
+		body.add_child(eye)
+	for i: int in 4:
+		var leg := _mesh(_cyl(0.04, 0.7), _mat(tint, 0.9, 0.0))
+		leg.position = Vector3(-0.3 + 0.2 * float(i), 0.3, -0.3 + 0.2 * float(i % 2))
+		leg.rotation.z = 0.5 if i % 2 == 0 else -0.5
+		body.add_child(leg)
+
+
+func _grub(body: Node3D, et: Types.EnemyType, tint: Color) -> void:
+	var belly := _mesh(_ico(et.radius), _mat(pal.col("enemy_grub_belly"), 0.9, 0.0))
+	belly.scale = Vector3(1.0, 0.75, 1.25)
+	belly.position.y = et.height * 0.5
+	body.add_child(belly)
+	var back := _mesh(_ico(et.radius * 0.95), _mat(tint, 0.85, 0.0))
+	back.scale = Vector3(1.0, 0.6, 1.2)
+	back.position.y = et.height * 0.68
+	body.add_child(back)
+	var plate := _mesh(_box(et.radius * 0.9, 0.12, et.radius * 1.3), _mat(pal.col("pellet_body"), 0.7, 0.0, pal.col("pellet_body"), 0.0))
+	plate.name = "plate"
+	plate.position.y = et.height * 0.98
+	body.add_child(plate)
+	var head := _mesh(_ico(et.radius * 0.62), _mat(pal.col("enemy_grub_belly"), 0.9, 0.0))
+	head.position = Vector3(0.0, et.height * 0.45, et.radius * 1.05)
+	body.add_child(head)
+	for sx: float in [-0.28, 0.28]:
+		var eye := _mesh(_ico(0.12), _mat(Color(0.1, 0.08, 0.08), 0.3, 0.0))
+		eye.position = Vector3(sx, et.height * 0.7, et.radius * 1.45)
+		body.add_child(eye)
+	_legs(body, et, tint.darkened(0.3), 6, 0.5, 0.6)
+
+
+## A hog with a bellows chest: it swells, then breathes its hazard out of a glowing snout.
+func _hog(body: Node3D, et: Types.EnemyType, tint: Color, glow: Color) -> void:
+	var swell := Node3D.new()
+	swell.name = "swell"
+	swell.position.y = et.height * 0.55
+	body.add_child(swell)
+	var trunk := _mesh(_ico(et.radius), _mat(tint, 0.85, 0.0))
+	trunk.scale = Vector3(1.0, 0.82, 1.3)
+	swell.add_child(trunk)
+	var chest := _mesh(_ico(et.radius * 0.7), _mat(glow.darkened(0.25), 0.7, 0.0, glow, 0.4))
+	chest.scale = Vector3(1.0, 0.75, 0.6)
+	chest.position = Vector3(0.0, -et.height * 0.12, et.radius * 0.55)
+	swell.add_child(chest)
+	for k: int in 5:
+		var bristle := CylinderMesh.new()
+		bristle.top_radius = 0.0
+		bristle.bottom_radius = 0.09
+		bristle.height = 0.32
+		bristle.radial_segments = 5
+		var b := _mesh(bristle, _mat(tint.darkened(0.45), 0.9, 0.0))
+		b.position = Vector3(0.0, et.radius * 0.78, -et.radius * 0.7 + et.radius * 0.35 * float(k))
+		b.rotation.x = -0.35
+		swell.add_child(b)
+	var head := _mesh(_ico(et.radius * 0.58), _mat(tint.lightened(0.08), 0.85, 0.0))
+	head.position = Vector3(0.0, et.height * 0.62, et.radius * 1.2)
+	body.add_child(head)
+	var snout := _mesh(_cyl(et.radius * 0.24, et.radius * 0.36), _mat(glow, 0.5, 0.0, glow, 0.3))
+	snout.name = "plate"
+	snout.rotation.x = PI * 0.5
+	snout.position = Vector3(0.0, et.height * 0.55, et.radius * 1.72)
+	body.add_child(snout)
+	for sx: float in [-1.0, 1.0]:
+		var ear := CylinderMesh.new()
+		ear.top_radius = 0.0
+		ear.bottom_radius = 0.13
+		ear.height = 0.3
+		ear.radial_segments = 5
+		var em := _mesh(ear, _mat(tint.darkened(0.2), 0.9, 0.0))
+		em.position = Vector3(0.24 * sx, et.height * 0.92, et.radius * 1.05)
+		em.rotation.z = -0.4 * sx
+		body.add_child(em)
+	_eyes(body, Vector3(0.0, et.height * 0.76, et.radius * 1.55), 0.17, 0.075)
+	_legs(body, et, tint.darkened(0.35), 4, 0.55, 0.15, 0.09)
+
+
+## A squat toad with big eyes on top and folded back legs.
+func _toad(body: Node3D, et: Types.EnemyType, tint: Color) -> void:
+	var trunk := _mesh(_ico(et.radius), _mat(tint, 0.6, 0.0))
+	trunk.scale = Vector3(1.25, 0.62, 1.05)
+	trunk.position.y = et.height * 0.45
+	body.add_child(trunk)
+	var belly := _mesh(_ico(et.radius * 0.9), _mat(pal.col("enemy_toad_belly"), 0.7, 0.0))
+	belly.scale = Vector3(1.15, 0.45, 1.0)
+	belly.position = Vector3(0.0, et.height * 0.3, et.radius * 0.12)
+	body.add_child(belly)
+	for k: int in 6:
+		var wart := _mesh(_ico(0.07), _mat(tint.darkened(0.3), 0.8, 0.0))
+		wart.position = Vector3((float(k % 3) - 1.0) * 0.35, et.height * 0.72, -0.2 + 0.3 * float(k / 3))
+		body.add_child(wart)
+	for sx: float in [-1.0, 1.0]:
+		var bump := _mesh(_ico(0.2), _mat(tint, 0.6, 0.0))
+		bump.position = Vector3(0.36 * sx, et.height * 0.82, et.radius * 0.45)
+		body.add_child(bump)
+		var thigh := _mesh(_ico(et.radius * 0.45), _mat(tint.darkened(0.12), 0.6, 0.0))
+		thigh.scale = Vector3(0.7, 0.6, 1.3)
+		thigh.position = Vector3(et.radius * 1.05 * sx, et.height * 0.25, -et.radius * 0.35)
+		body.add_child(thigh)
+		var hand := _mesh(_cyl(0.06, 0.35), _mat(tint.darkened(0.1), 0.6, 0.0))
+		hand.position = Vector3(et.radius * 0.6 * sx, 0.15, et.radius * 0.75)
+		hand.rotation.z = 0.3 * sx
+		body.add_child(hand)
+	_eyes(body, Vector3(0.0, et.height * 0.95, et.radius * 0.55), 0.36, 0.13)
+	var mouth := _mesh(_box(et.radius * 1.3, 0.03, 0.05), _mat(Color(0.12, 0.1, 0.08), 0.8, 0.0))
+	mouth.position = Vector3(0.0, et.height * 0.45, et.radius * 1.02)
+	body.add_child(mouth)
+
+
+## Armoured in front (the brow plate glows as it winds up), soft and pale behind: hit it there.
+func _shellback(body: Node3D, et: Types.EnemyType, tint: Color) -> void:
+	var shell := _mesh(_ico(et.radius * 1.05), _mat(tint, 0.45, 0.25))
+	shell.scale = Vector3(1.0, 0.72, 1.2)
+	shell.position.y = et.height * 0.62
+	body.add_child(shell)
+	for k: int in 4:
+		var ridge := _mesh(_box(et.radius * 1.2 - 0.12 * float(k), 0.1, 0.18), _mat(tint.lightened(0.25), 0.4, 0.3))
+		ridge.position = Vector3(0.0, et.height * 1.03 - 0.06 * float(absi(k - 1)), -et.radius * 0.5 + et.radius * 0.38 * float(k))
+		body.add_child(ridge)
+	var brow := _mesh(_box(et.radius * 1.5, et.height * 0.6, 0.22), _mat(tint.lightened(0.35), 0.35, 0.4, pal.col("hud_warn"), 0.0))
+	brow.name = "plate"
+	brow.position = Vector3(0.0, et.height * 0.5, et.radius * 1.12)
+	brow.rotation.x = -0.25
+	body.add_child(brow)
+	var horn := CylinderMesh.new()
+	horn.top_radius = 0.0
+	horn.bottom_radius = 0.12
+	horn.height = 0.5
+	horn.radial_segments = 6
+	var hm := _mesh(horn, _mat(pal.col("pellet_body"), 0.4, 0.2))
+	hm.rotation.x = PI * 0.5 - 0.3
+	hm.position = Vector3(0.0, et.height * 0.6, et.radius * 1.4)
+	body.add_child(hm)
+	var soft := _mesh(_ico(et.radius * 0.55), _mat(pal.col("enemy_shellback_soft"), 0.8, 0.0, pal.col("enemy_shellback_soft"), 0.25))
+	soft.scale = Vector3(1.1, 0.8, 0.8)
+	soft.position = Vector3(0.0, et.height * 0.45, -et.radius * 1.05)
+	body.add_child(soft)
+	_eyes(body, Vector3(0.0, et.height * 0.38, et.radius * 1.22), 0.22, 0.06)
+	_legs(body, et, tint.darkened(0.4), 6, 0.55, 0.55, 0.07)
+
+
+## A round puff with a ring mouth and a leafy tuft. It inflates, then blows.
+func _puff_body(body: Node3D, et: Types.EnemyType, tint: Color) -> void:
+	var swell := Node3D.new()
+	swell.name = "swell"
+	swell.position.y = et.height * 0.55
+	body.add_child(swell)
+	var ball := _mesh(_ico(et.radius), _mat(tint, 0.8, 0.0))
+	ball.scale = Vector3(1.0, 0.95, 1.0)
+	swell.add_child(ball)
+	var lip := TorusMesh.new()
+	lip.inner_radius = et.radius * 0.22
+	lip.outer_radius = et.radius * 0.36
+	lip.rings = 16
+	lip.ring_segments = 6
+	var lm := _mesh(lip, _mat(tint.darkened(0.3), 0.7, 0.0))
+	lm.rotation.x = PI * 0.5
+	lm.position = Vector3(0.0, -et.radius * 0.1, et.radius * 0.92)
+	swell.add_child(lm)
+	var hole := _mesh(_cyl(et.radius * 0.22, 0.05), _mat(Color(0.12, 0.1, 0.1), 0.9, 0.0))
+	hole.rotation.x = PI * 0.5
+	hole.position = Vector3(0.0, -et.radius * 0.1, et.radius * 0.9)
+	swell.add_child(hole)
+	_eyes(swell, Vector3(0.0, et.radius * 0.35, et.radius * 0.8), 0.2, 0.08)
+	for k: int in 3:
+		var a: float = float(k) / 3.0 * TAU
+		var leaf := _mesh(_ico(0.16), _mat(pal.col("scatter_leaf"), 0.8, 0.0))
+		leaf.scale = Vector3(0.5, 1.4, 0.25)
+		leaf.position = Vector3(sin(a) * 0.12, et.radius * 1.05, cos(a) * 0.12)
+		leaf.rotation = Vector3(cos(a) * 0.5, a, -sin(a) * 0.5)
+		swell.add_child(leaf)
+	for sx: float in [-1.0, 1.0]:
+		var foot := _mesh(_ico(0.14), _mat(tint.darkened(0.25), 0.8, 0.0))
+		foot.scale = Vector3(1.0, 0.6, 1.3)
+		foot.position = Vector3(0.28 * sx, 0.07, 0.1)
+		body.add_child(foot)
+
+
+## A mole: dark fur, a pink star nose, broad digging paws. Underground it is a dirt mound.
+func _mole(n: Node3D, body: Node3D, et: Types.EnemyType, tint: Color) -> void:
+	var fur := _mesh(_ico(et.radius), _mat(tint, 0.95, 0.0))
+	fur.scale = Vector3(1.0, 0.85, 1.35)
+	fur.position.y = et.height * 0.5
+	body.add_child(fur)
+	var nose_c: Color = pal.col("enemy_mole_nose")
+	var nose := _mesh(_ico(et.radius * 0.22), _mat(nose_c, 0.6, 0.0))
+	nose.position = Vector3(0.0, et.height * 0.45, et.radius * 1.35)
+	body.add_child(nose)
+	for k: int in 6:
+		var a: float = float(k) / 6.0 * TAU
+		var feeler := _mesh(_cyl(0.025, 0.12), _mat(nose_c, 0.6, 0.0))
+		feeler.rotation = Vector3(PI * 0.5, 0.0, a)
+		feeler.position = Vector3(sin(a) * 0.1, et.height * 0.45 + cos(a) * 0.1, et.radius * 1.45)
+		body.add_child(feeler)
+	for sx: float in [-1.0, 1.0]:
+		var paw := _mesh(_box(0.3, 0.08, 0.26), _mat(nose_c.darkened(0.1), 0.7, 0.0))
+		paw.position = Vector3(et.radius * 0.85 * sx, 0.12, et.radius * 0.75)
+		paw.rotation = Vector3(0.0, 0.3 * sx, 0.5 * sx)
+		body.add_child(paw)
+		var eye := _mesh(_ico(0.035), _mat(Color(0.05, 0.05, 0.05), 0.2, 0.0))
+		eye.position = Vector3(0.13 * sx, et.height * 0.66, et.radius * 1.12)
+		body.add_child(eye)
+	var mound := Node3D.new()
+	mound.name = "mound"
+	mound.visible = false
+	n.add_child(mound)
+	var dirt := _mesh(_ico(et.radius * 1.1), _mat(pal.col("terrain_loam"), 1.0, 0.0))
+	dirt.scale = Vector3(1.2, 0.45, 1.5)
+	mound.add_child(dirt)
+	for k: int in 5:
+		var a2: float = float(k) / 5.0 * TAU
+		var clod := _mesh(_ico(0.12), _mat(pal.col("terrain_loam").darkened(0.2), 1.0, 0.0))
+		clod.position = Vector3(sin(a2) * et.radius * 1.2, 0.05, cos(a2) * et.radius * 1.5)
+		mound.add_child(clod)
 
 
 func _sync_gates(w: SimWorld) -> void:

@@ -62,7 +62,7 @@ static func _contact(w: SimWorld) -> void:
 	var dmg: float = c.wn("knight", "sword_damage", 12.0)
 	var fwd := Vector3(sin(k.yaw), 0.0, cos(k.yaw))
 	for e: Entities.Enemy in w.enemies:
-		if e.state == Entities.Enemy.State.DEAD:
+		if e.state == Entities.Enemy.State.DEAD or Damage.untouchable(e):
 			continue
 		var et: Types.EnemyType = w.enemy_type(e)
 		var d: Vector3 = e.pos - k.pos
@@ -75,7 +75,7 @@ static func _contact(w: SimWorld) -> void:
 		# positional, never a roll: behind it is a backstrike
 		var efwd := Vector3(sin(e.yaw), 0.0, cos(e.yaw))
 		var behind: bool = dist > 0.001 and efwd.dot(-d.normalized()) < -0.3
-		var amount: float = dmg * (c.wn("knight", "backstrike_mult", 1.55) if behind else 1.0)
+		var amount: float = dmg * (c.wn("knight", "backstrike_mult", 1.55) if behind else Damage.facing_mult(e, et, k.pos))
 		Damage.to_enemy(w, e, amount, "Backstrike" if behind else "Sword", e.pos + Vector3(0.0, et.height, 0.0))
 		if e.state == Entities.Enemy.State.SLEEP:
 			e.state = Entities.Enemy.State.IDLE

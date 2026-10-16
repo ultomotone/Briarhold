@@ -60,6 +60,8 @@ func build(field: Heightfield, pal: PaletteData) -> void:
 	mat.set_shader_parameter("stone_start", pal.num("terrain_stone_slope_start"))
 	mat.set_shader_parameter("stone_end", pal.num("terrain_stone_slope_end"))
 	mat.set_shader_parameter("noise_v", pal.num("terrain_noise_v"))
+	mat.set_shader_parameter("clover", pal.col("terrain_clover"))
+	mat.set_shader_parameter("path", pal.col("terrain_path"))
 	m.surface_set_material(0, mat)
 	mesh = m
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
@@ -90,6 +92,8 @@ uniform float dry_end = 7.0;
 uniform float stone_start = 0.42;
 uniform float stone_end = 0.75;
 uniform float noise_v = 0.12;
+uniform vec4 clover : source_color;
+uniform vec4 path : source_color;
 varying vec3 wpos;
 varying vec3 wnorm;
 void vertex() {
@@ -99,6 +103,16 @@ void vertex() {
 float hash2(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
+float vnoise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	float a = hash2(i);
+	float b = hash2(i + vec2(1.0, 0.0));
+	float cc = hash2(i + vec2(0.0, 1.0));
+	float d = hash2(i + vec2(1.0, 1.0));
+	return mix(mix(a, b, f.x), mix(cc, d, f.x), f.y);
+}
 void fragment() {
 	float h = wpos.y;
 	float slope = (1.0 - wnorm.y) * 2.2;
@@ -106,6 +120,11 @@ void fragment() {
 	vec3 c = mix(moss.rgb, loam.rgb, dt * 0.6);
 	c = mix(c, dry.rgb, dt * dt);
 	float st = clamp((slope - stone_start) / max(0.001, stone_end - stone_start), 0.0, 1.0);
+	// patches: clover in the low ground, worn bare earth here and there
+	float patch_n = vnoise(wpos.xz * 0.055) * 0.65 + vnoise(wpos.xz * 0.16 + 9.0) * 0.35;
+	c = mix(c, clover.rgb, smoothstep(0.56, 0.72, patch_n) * 0.75 * (1.0 - dt));
+	float bare = vnoise(wpos.xz * 0.035 + 17.0) * 0.7 + vnoise(wpos.xz * 0.2 - 4.0) * 0.3;
+	c = mix(c, path.rgb, smoothstep(0.66, 0.78, bare) * 0.6);
 	c = mix(c, stone.rgb, st);
 	// one shade per ground cell so the facets read as facets, not as a gradient
 	float v = hash2(floor(wpos.xz));

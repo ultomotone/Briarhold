@@ -17,21 +17,8 @@ static func step(w: SimWorld, dt: float) -> void:
 			var t: Types.SprigType = w.sprig_type(s)
 			if t.immune.has(z.hazard_id):
 				continue
-			if hz.status.is_empty():
-				continue
 			if s.status.is_empty():
-				s.status = hz.status
-				s.status_t = 0.0
-				s.hazard_id = z.hazard_id
-				w.events.push("status", {"pos": s.pos, "type": s.type_id, "status": hz.status})
-				if hz.flee:
-					# it breaks and runs, away from the vent, dropping whatever it held
-					w.set_state(s, Entities.Sprig.State.IDLE)
-					var away: Vector3 = s.pos - z.pos
-					away.y = 0.0
-					if away.length() < 0.01:
-						away = Vector3(1.0, 0.0, 0.0)
-					s.charge_target = w.ground(z.pos + away.normalized() * (z.radius + 2.5))
+				afflict(w, s, z.hazard_id, z.pos, z.radius + 2.5)
 		var k: Entities.Knight = w.knight
 		if hz.knight_damage_per_sec > 0.0 and SimWorld.flat_dist(k.pos, z.pos) <= z.radius:
 			Damage.to_knight(w, hz.knight_damage_per_sec * dt, hz.name)
@@ -50,6 +37,29 @@ static func step(w: SimWorld, dt: float) -> void:
 		s.status_t += dt
 		if hz.kill_after > 0.0 and s.status_t >= hz.kill_after:
 			w.kill_sprig(s, hz.name.to_lower())
+
+
+## Put a hazard's status on a sprig that is not immune. A fleeing status sends it running away
+## from source to flee_to metres off, dropping whatever it held. Returns true if it took.
+static func afflict(w: SimWorld, s: Entities.Sprig, hazard_id: String, source: Vector3, flee_to: float) -> bool:
+	var hz: Types.HazardType = w.content.hazard(hazard_id)
+	if hz == null or hz.status.is_empty() or not s.status.is_empty():
+		return false
+	if w.sprig_type(s).immune.has(hazard_id):
+		return false
+	s.status = hz.status
+	s.status_t = 0.0
+	s.hazard_id = hazard_id
+	w.events.push("status", {"pos": s.pos, "type": s.type_id, "status": hz.status})
+	if hz.flee:
+		# it breaks and runs, away from the source, dropping whatever it held
+		w.set_state(s, Entities.Sprig.State.IDLE)
+		var away: Vector3 = s.pos - source
+		away.y = 0.0
+		if away.length() < 0.01:
+			away = Vector3(sin(float(s.id)), 0.0, cos(float(s.id)))
+		s.charge_target = w.ground(w.field.clamp_bound(source + away.normalized() * flee_to))
+	return true
 
 
 static func _inside_hazard(w: SimWorld, p: Vector3, hazard_id: String) -> bool:

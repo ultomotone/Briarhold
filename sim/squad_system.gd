@@ -517,7 +517,7 @@ static func _fly(w: SimWorld, s: Entities.Sprig, dt: float) -> void:
 static func land(w: SimWorld, s: Entities.Sprig) -> void:
 	var t: Types.SprigType = w.sprig_type(s)
 	for e: Entities.Enemy in w.enemies:
-		if e.state == Entities.Enemy.State.DEAD:
+		if e.state == Entities.Enemy.State.DEAD or Damage.untouchable(e):
 			continue
 		var et: Types.EnemyType = w.enemy_type(e)
 		if SimWorld.flat_dist(s.pos, e.pos) <= et.radius + 0.45:
@@ -606,7 +606,7 @@ static func _idle(w: SimWorld, s: Entities.Sprig, dt: float) -> void:
 	var best_o: Entities.WorldObject = null
 	var best_g: Entities.Gate = null
 	for e: Entities.Enemy in w.enemies:
-		if e.state == Entities.Enemy.State.DEAD or e.state == Entities.Enemy.State.SLEEP or e.state == Entities.Enemy.State.RETREAT:
+		if e.state == Entities.Enemy.State.DEAD or e.state == Entities.Enemy.State.SLEEP or e.state == Entities.Enemy.State.RETREAT or Damage.untouchable(e):
 			continue
 		var d: float = SimWorld.flat_dist(s.pos, e.pos) - w.enemy_type(e).radius
 		if d < best_d:
@@ -650,7 +650,7 @@ static func _attack(w: SimWorld, s: Entities.Sprig, dt: float) -> void:
 			return
 	if s.enemy_id >= 0:
 		var e: Entities.Enemy = w.enemy_by_id(s.enemy_id)
-		if e == null or e.state == Entities.Enemy.State.DEAD:
+		if e == null or e.state == Entities.Enemy.State.DEAD or Damage.untouchable(e):
 			w.set_state(s, Entities.Sprig.State.IDLE)
 			return
 		var et: Types.EnemyType = w.enemy_type(e)

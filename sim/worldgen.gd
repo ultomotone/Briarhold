@@ -17,6 +17,8 @@ static func populate(w: SimWorld) -> void:
 	var region_centres: Array[Vector3] = _reserve_regions(w)
 	# stones: the field's furniture and its walls
 	_stones(w)
+	# the bigger furniture: stumps, fallen branches, ruins, mushrooms, daisies
+	_scenery(w)
 	for i: int in region_centres.size():
 		_build_region(w, i, region_centres[i])
 	# the Stone shrine waits in the field with a few sprouts of its own
@@ -91,19 +93,95 @@ static func populate(w: SimWorld) -> void:
 	var gate_ang0: float = rgate.randf() * TAU
 	for gi: int in 2:
 		_pocket(w, rgate, gate_ang0 + float(gi) * 2.4, 44.0 + float(gi) * 36.0, gi)
+	# the beasts, each where its kind would live
+	_beasts(w)
 	# the day's first animals
 	var rb := Rng.stream(ss + ":beetles")
 	for i: int in w.content.wi_in("arrivals", "start_beetles", 4):
 		var e: Entities.Enemy = w.spawn_enemy("field_beetle", _open_spot(w, rb, 14.0, w.field.bound - 8.0), "beetle:%d" % i)
 		e.state = Entities.Enemy.State.IDLE
-	# green scatter for the view only: leaves and stalks, never in the way
+	# green scatter for the view only: leaves, stalks, tufts, clover, ferns and small flowers,
+	# never in the way. Thickets where the slow noise says so; flowers where the meadow noise does.
 	var rpl := Rng.stream(ss + ":plants")
-	for i: int in 700:
+	for i: int in 1800:
 		var p: Vector3 = _open_spot(w, rpl, 6.0, w.field.bound - 2.0, false)
-		# thickets: denser where the slow noise says so
-		if w.field.noise2(p.x * 0.05 + 3.0, p.z * 0.05 - 9.0) < 0.42 and rpl.randf() < 0.6:
+		var thick: float = w.field.noise2(p.x * 0.05 + 3.0, p.z * 0.05 - 9.0)
+		var meadow: float = w.field.noise2(p.x * 0.035 - 40.0, p.z * 0.035 + 12.0)
+		if thick < 0.42 and meadow < 0.5 and rpl.randf() < 0.6:
 			continue
-		w.plants.append({"pos": w.ground(p), "s": 0.5 + rpl.randf() * 1.3, "kind": "stalk" if rpl.randf() < 0.55 else "leaf", "rot": rpl.randf() * TAU})
+		var roll: float = rpl.randf()
+		var kind: String
+		if meadow > 0.55 and roll < 0.45:
+			kind = "flower"
+		elif roll < 0.3:
+			kind = "stalk"
+		elif roll < 0.52:
+			kind = "leaf"
+		elif roll < 0.72:
+			kind = "tuft"
+		elif roll < 0.86:
+			kind = "clover"
+		else:
+			kind = "fern"
+		w.plants.append({"pos": w.ground(p), "s": 0.5 + rpl.randf() * 1.3, "kind": kind, "rot": rpl.randf() * TAU, "c": rpl.randi_range(0, 2)})
+
+
+## Creatures with abilities, placed by habit: Cinder Hogs doze by the fire vents, Pounce Toads
+## sit by the pools, Gale Puffs live beside a vent or a pool (and blow sprigs into it),
+## Shellbacks and Hollow Moles have the open field. Counts from world.json "beasts".
+static func _beasts(w: SimWorld) -> void:
+	var r := Rng.stream(w.seed_str() + ":beasts")
+	var vents: Array[Dictionary] = []
+	var pools: Array[Dictionary] = []
+	for z: Entities.HazardZone in w.hazards:
+		if _in_reserved(w, z.pos):
+			continue
+		if z.hazard_id == "fire":
+			vents.append({"pos": z.pos, "r": z.radius})
+		elif z.hazard_id == "water":
+			pools.append({"pos": z.pos, "r": z.radius})
+	var both: Array[Dictionary] = []
+	for i: int in maxi(vents.size(), pools.size()):
+		if i < vents.size():
+			both.append(vents[i])
+		if i < pools.size():
+			both.append(pools[i])
+	var placed: Array[Vector3] = []
+	var plan: Array = [["cinder_hog", vents], ["pounce_toad", pools], ["gale_puff", both], ["shellback", []], ["hollow_mole", []]]
+	for row: Array in plan:
+		var kind: String = row[0]
+		var homes: Array[Dictionary] = []
+		homes.assign(row[1])
+		var n: int = w.content.wi_in("beasts", kind, 0)
+		for i: int in n:
+			var p: Vector3
+			if i < homes.size():
+				var h: Dictionary = homes[i]
+				var c: Vector3 = h["pos"]
+				var ang: float = r.randf() * TAU
+				p = w.push_out(c + Vector3(sin(ang), 0.0, cos(ang)) * (float(h["r"]) + 2.0 + r.randf() * 2.0), 1.0)
+			else:
+				p = _open_spot(w, r, 36.0, w.field.bound - 10.0)
+				for tries: int in 12:
+					var ok: bool = true
+					for q: Vector3 in placed:
+						if SimWorld.flat_dist(p, q) < 14.0:
+							ok = false
+							break
+					if ok:
+						break
+					p = _open_spot(w, r, 36.0, w.field.bound - 10.0)
+			placed.append(p)
+			var e: Entities.Enemy = w.spawn_enemy(kind, p, "beast:%s:%d" % [kind, i])
+			e.yaw = r.randf() * TAU
+
+
+static func _in_reserved(w: SimWorld, p: Vector3) -> bool:
+	for rs: Dictionary in w.reserved:
+		var c: Vector3 = rs["pos"]
+		if SimWorld.flat_dist(p, c) < float(rs["r"]):
+			return true
+	return false
 
 
 static func _pocket(w: SimWorld, rgate: Rng, gate_ang: float, dist: float, gi: int) -> void:
@@ -233,6 +311,118 @@ static func _build_region(w: SimWorld, i: int, c: Vector3) -> void:
 		e.yaw = r.randf() * TAU
 
 
+## The field's bigger furniture, all from one stream. Each piece is an entry in w.scenery for
+## the view and one or more kind-tagged circles in w.obstacles for the sim and the navmesh.
+## Old stumps with roots; fallen branches lying across the ground (a chain of circles);
+## the kingdom's ruins (broken columns and runs of wall); giant mushrooms in clusters; and
+## meadows of giant daisies on thin stems.
+static func _scenery(w: SimWorld) -> void:
+	var r := Rng.stream(w.seed_str() + ":scenery")
+	var b: float = w.field.bound
+	for i: int in 5:
+		var p: Vector3 = _open_spot(w, r, 32.0, b - 14.0)
+		var rad: float = 2.4 + r.randf() * 1.4
+		var h: float = 1.5 + r.randf() * 1.3
+		w.obstacles.append({"pos": p, "r": rad, "h": h, "kind": "stump"})
+		w.scenery.append({"kind": "stump", "pos": p, "r": rad, "h": h, "rot": r.randf() * TAU})
+	for i: int in 14:
+		var a: Vector3 = _open_spot(w, r, 20.0, b - 10.0)
+		var ang: float = r.randf() * TAU
+		var length: float = 6.0 + r.randf() * 7.0
+		var rad: float = 0.45 + r.randf() * 0.4
+		var e: Vector3 = w.field.clamp_bound(a + Vector3(sin(ang), 0.0, cos(ang)) * length)
+		if _in_reserved(w, e) or SimWorld.flat_dist(e, w.hold.pos) < 18.0 or _near_blocker(w, a, e, rad):
+			continue
+		var segs: int = int(ceilf(length / (rad * 1.3)))
+		for k: int in segs + 1:
+			var c: Vector3 = a.lerp(e, float(k) / float(segs))
+			w.obstacles.append({"pos": w.ground(c), "r": rad, "h": rad * 2.0, "kind": "log"})
+		w.scenery.append({"kind": "log", "a": w.ground(a), "b": w.ground(e), "r": rad, "rot": r.randf() * TAU})
+	for i: int in 6:
+		_ruin(w, r, _open_spot(w, r, 34.0, b - 16.0))
+	for i: int in 11:
+		var c: Vector3 = _open_spot(w, r, 16.0, b - 6.0)
+		var n: int = 2 + r.randi_range(0, 2)
+		for k: int in n:
+			var ang: float = r.randf() * TAU
+			var p: Vector3 = w.ground(c + Vector3(sin(ang), 0.0, cos(ang)) * (0.0 if k == 0 else 1.8 + r.randf() * 2.2))
+			if w.blocked(p, 0.6):
+				continue
+			var stalk: float = 0.22 + r.randf() * 0.22
+			var cap: float = stalk * 4.2 + r.randf() * 1.0
+			var h: float = 1.6 + r.randf() * 2.4
+			w.obstacles.append({"pos": p, "r": stalk + 0.1, "h": h, "kind": "mushroom"})
+			w.scenery.append({"kind": "mushroom", "pos": p, "stalk": stalk, "cap": cap, "h": h, "tilt": (r.randf() - 0.5) * 0.3, "rot": r.randf() * TAU})
+	for i: int in 9:
+		var c: Vector3 = _open_spot(w, r, 18.0, b - 6.0)
+		var col: int = r.randi_range(0, 2)
+		for k: int in 5 + r.randi_range(0, 4):
+			var ang: float = r.randf() * TAU
+			var p: Vector3 = w.ground(c + Vector3(sin(ang), 0.0, cos(ang)) * (r.randf() * 5.0))
+			if w.blocked(p, 0.5):
+				continue
+			var h: float = 3.0 + r.randf() * 3.5
+			w.obstacles.append({"pos": p, "r": 0.22, "h": h, "kind": "daisy"})
+			w.scenery.append({"kind": "daisy", "pos": p, "h": h, "bloom": 0.8 + r.randf() * 0.7, "c": col, "lean": Vector2(r.randf() - 0.5, r.randf() - 0.5) * 0.25, "rot": r.randf() * TAU})
+
+
+## A ruin: the footprint of some small hall, its columns standing or broken, two or three runs of
+## wall with gaps in them, moss on all of it.
+static func _ruin(w: SimWorld, r: Rng, c: Vector3) -> void:
+	var yaw: float = r.randf() * TAU
+	var ax := Vector3(cos(yaw), 0.0, -sin(yaw))
+	var az := Vector3(sin(yaw), 0.0, cos(yaw))
+	var hw: float = 4.5 + r.randf() * 2.0
+	var hd: float = 3.5 + r.randf() * 1.5
+	var spots: Array[Vector3] = []
+	for sx: float in [-1.0, 0.0, 1.0]:
+		for sz: float in [-1.0, 1.0]:
+			spots.append(c + ax * hw * sx + az * hd * sz)
+	for p: Vector3 in spots:
+		if r.randf() < 0.2:
+			continue # this one fell long ago
+		var g: Vector3 = w.ground(p)
+		var broken: bool = r.randf() < 0.55
+		var h: float = (0.8 + r.randf() * 1.6) if broken else (3.4 + r.randf() * 1.4)
+		w.obstacles.append({"pos": g, "r": 0.55, "h": h, "kind": "column"})
+		w.scenery.append({"kind": "column", "pos": g, "r": 0.5, "h": h, "broken": broken, "rot": r.randf() * TAU})
+	# walls along the long sides, each run short of the corners so there are ways in
+	for side: float in [-1.0, 1.0]:
+		if r.randf() < 0.25:
+			continue
+		var from: float = -hw + 1.0 + r.randf() * 1.5
+		var to: float = hw - 1.0 - r.randf() * 2.5
+		if to - from < 2.0:
+			continue
+		var a: Vector3 = w.ground(c + az * hd * side + ax * from)
+		var e: Vector3 = w.ground(c + az * hd * side + ax * to)
+		var h: float = 0.9 + r.randf() * 1.4
+		var segs: int = int(ceilf((to - from) / 0.6))
+		for k: int in segs + 1:
+			w.obstacles.append({"pos": w.ground(a.lerp(e, float(k) / float(segs))), "r": 0.42, "h": h, "kind": "wall"})
+		w.scenery.append({"kind": "wall", "a": a, "b": e, "h": h, "t": 0.7})
+	# a fallen block or two inside
+	for k: int in r.randi_range(0, 2):
+		var p: Vector3 = w.ground(c + ax * (r.randf() - 0.5) * hw + az * (r.randf() - 0.5) * hd)
+		var s: float = 0.6 + r.randf() * 0.5
+		w.obstacles.append({"pos": p, "r": s, "h": s * 1.2, "kind": "block"})
+		w.scenery.append({"kind": "block", "pos": p, "s": s, "rot": r.randf() * TAU})
+
+
+## True if a segment a..b (with radius rad) would cross a pool or other nav blocker.
+static func _near_blocker(w: SimWorld, a: Vector3, b: Vector3, rad: float) -> bool:
+	for nb: Dictionary in w.nav_blockers:
+		var c: Vector3 = nb["pos"]
+		var ab := Vector2(b.x - a.x, b.z - a.z)
+		var t: float = 0.0
+		if ab.length_squared() > 0.0001:
+			t = clampf(Vector2(c.x - a.x, c.z - a.z).dot(ab) / ab.length_squared(), 0.0, 1.0)
+		var q := Vector2(a.x, a.z) + ab * t
+		if q.distance_to(Vector2(c.x, c.z)) < float(nb["r"]) + rad + 1.0:
+			return true
+	return false
+
+
 static func _stones(w: SimWorld) -> void:
 	var r := Rng.stream(w.seed_str() + ":stones")
 	for i: int in 80:
@@ -253,12 +443,7 @@ static func _open_spot(w: SimWorld, r: Rng, rmin: float, rmax: float, avoid_rese
 		var d: float = rmin + r.randf() * (rmax - rmin)
 		var p: Vector3 = w.hold.pos + Vector3(sin(ang), 0.0, cos(ang)) * d
 		p = w.field.clamp_bound(p)
-		var clear: bool = true
-		for ob: Dictionary in w.obstacles:
-			var c: Vector3 = ob["pos"]
-			if SimWorld.flat_dist(p, c) < float(ob["r"]) + 1.2:
-				clear = false
-				break
+		var clear: bool = not w.blocked(p, 1.2)
 		if clear and avoid_reserved:
 			for rs: Dictionary in w.reserved:
 				var c: Vector3 = rs["pos"]

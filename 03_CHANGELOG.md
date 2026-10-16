@@ -1,5 +1,50 @@
 # CHANGELOG — decisions with reasoning, newest first
 
+## 2026-10-16 — S000f: cuter sprigs, clear shrines, a freer camera, beasts, and more ground (owner-present session)
+
+His asks, all in one session: cuter sprigs with leafier leaves; shrines at the Hold that say
+which is which; zoom out farther; hold the middle mouse button to move the view; smoother day
+and night; more terrain; more creatures with skills of their own.
+
+- **Sprigs.** Bigger head, eyes with whites, pupils and a highlight, blush, a small smile, a
+  blink on each sprig's own phase, a breath in the body. The leaf is a real leaf now: broad,
+  pointed, folded on a dark midrib with faint veins, curling forward on a curved stem. The bud
+  is a teardrop with two small leaves; the bloom has round petals.
+- **Shrines.** The body is the type's colour, a coloured ring marks the ground, and an emblem of
+  its own turns over the top: flame, block, bolt, drop, thorn star, wings, snowflake, acorn. A
+  name with its inside count floats above, the same size on screen at any zoom.
+- **Camera.** Zoom reaches 46 m (was 18), in steps that grow with distance. Holding the middle
+  mouse button and dragging turns the view freely and tilts it. The cursor stays free.
+- **Day and night.** The light was switching: at nightfall the darkness dropped from half back
+  to zero and the sun jumped to the moon's angle. Now one darkness value runs over the whole
+  cycle (dusk from 150 s before nightfall to 70 s after; dawn the same way), with a warm band
+  through dusk and dawn and a light that slides from sun to moon. A test walks the whole cycle
+  in half seconds and fails on any step over 0.01.
+- **Beasts** (`enemies.json`, a new `attack` per row): Cinder Hog (breathes fire in a cone;
+  Embers shrug it off), Mire Hog (the same with poison; the Fume Bog's new guardian), Pounce
+  Toad (leaps onto where you stood, a warning ring shows the spot; Stone and Moth are not
+  crushed), Shellback (armoured in front at 0.2, soft behind at 2.5; rushes in a line,
+  trampling, then is dizzy), Gale Puff (blows sprigs back into whatever hazard it lives beside;
+  Oaks are too heavy), Hollow Mole (a moving mound nothing can touch; comes up under you, eats
+  three, then fights on the surface for seven seconds). Hogs live by the vents, toads by the
+  pools, puffs beside either; 17 in the field at the start and a chance of one more each dawn.
+  The first time each one winds up, the log says what it is and how to fight it.
+- **Ground.** Ridges in the rough country; clover patches and worn earth in the colouring. Old
+  stumps with roots, fallen branches, six ruins of columns and wall courses, giant mushroom
+  clusters and giant daisy meadows (their tops dither away near the camera so they never hide
+  him), and the small scatter now has tufts, ferns, clover and flowers. Stones vary in tone.
+
+**Found and fixed: the sim's random stream rolled engine dice.** Inside `Rng`, a bare `randf()`
+resolves to the engine's global function, not the class's own. `randi_range`, `randf_range`
+and `pick_weighted` all did that, so they were never seeded. Few callers used them until now
+(the dawn beetle count did). The new scenery leaned on them and same-seed worlds came out
+different. Every internal draw now goes through `self`, and a regression test pins it.
+
+Obstacles are bucketed on a 6 m grid (`SimWorld.obstacles_near`), so the extra scenery costs
+the per-tick collision nothing: a point checks the handful near it, not all five hundred.
+
+**Gate.** import · check · 87 tests · nine shots read (new: `latest-bestiary`, `latest-far`).
+
 ## 2026-10-16 — S000e: every type in the field (owner-present session)
 
 He asked where the water sprigs were. Seven types were in `content/sprigs.json`; only Ember and

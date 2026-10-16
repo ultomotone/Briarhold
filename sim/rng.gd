@@ -39,13 +39,17 @@ func randf() -> float:
 	return float(next_u32()) / 4294967296.0
 
 
+## Inside this class a bare randf() resolves to the engine's global randf(), not the method
+## above: engine randomness, the one thing this class exists to keep out. Every internal draw goes
+## through self. (Found 2026-10-16: randi_range was rolling the engine's dice; same-seed worlds
+## diverged as soon as worldgen leaned on it.)
 func randf_range(lo: float, hi: float) -> float:
-	return lo + (hi - lo) * randf()
+	return lo + (hi - lo) * self.randf()
 
 
 ## Inclusive at both ends.
 func randi_range(lo: int, hi: int) -> int:
-	return lo + int(randf() * float(hi - lo + 1))
+	return lo + int(self.randf() * float(hi - lo + 1))
 
 
 ## Weighted pick, returns the index. Weights >= 0, sum > 0.
@@ -53,7 +57,7 @@ func pick_weighted(weights: PackedFloat32Array) -> int:
 	var total: float = 0.0
 	for w: float in weights:
 		total += w
-	var r: float = randf() * total
+	var r: float = self.randf() * total
 	for i: int in weights.size():
 		r -= weights[i]
 		if r < 0.0:

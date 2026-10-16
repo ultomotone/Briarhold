@@ -4,18 +4,29 @@ class_name Damage
 extends RefCounted
 
 
-## Damage from behind an enemy is scaled by its back_multiplier; from the front, 1.0.
+## Damage from behind an enemy is scaled by its back_multiplier; from the front by its
+## front_multiplier (armour); from the side, 1.0. Positional, never a roll.
 static func facing_mult(e: Entities.Enemy, et: Types.EnemyType, from: Vector3) -> float:
 	var fwd := Vector3(sin(e.yaw), 0.0, cos(e.yaw))
 	var d: Vector3 = from - e.pos
 	d.y = 0.0
 	if d.length() < 0.01:
 		return 1.0
-	return et.back_multiplier if fwd.dot(d.normalized()) < -0.3 else 1.0
+	var dot: float = fwd.dot(d.normalized())
+	if dot < -0.3:
+		return et.back_multiplier
+	if dot > 0.3:
+		return et.front_multiplier
+	return 1.0
+
+
+## Underground, nothing reaches it.
+static func untouchable(e: Entities.Enemy) -> bool:
+	return e.state == Entities.Enemy.State.BURROW
 
 
 static func to_enemy(w: SimWorld, e: Entities.Enemy, amount: float, cause: String, at: Vector3) -> float:
-	if e.state == Entities.Enemy.State.DEAD:
+	if e.state == Entities.Enemy.State.DEAD or untouchable(e):
 		return 0.0
 	var dealt: float = minf(amount, e.hp)
 	e.hp -= dealt

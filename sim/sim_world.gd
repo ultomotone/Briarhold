@@ -35,6 +35,9 @@ var landmarks: Array[Dictionary] = []
 ## Region ids he has walked into. Saved.
 var discovered: PackedStringArray = []
 var plants: Array[Dictionary] = [] # view-only scatter {"pos", "s", "kind"}
+## The larger furniture of the field, for the view: stumps, fallen branches, ruins, giant
+## mushrooms and daisies. Each also put obstacles in `obstacles` (kind tagged) for the sim.
+var scenery: Array[Dictionary] = []
 var hash: SpatialHash
 var next_id: int = 1
 var deltas: Dictionary = {"taken": PackedStringArray(), "felled": PackedStringArray(), "opened": PackedStringArray(), "rooted": PackedStringArray()}
@@ -466,10 +469,57 @@ func on_gate_opened(g: Entities.Gate) -> void:
 
 # ---- shared movement helpers -----------------------------------------------------------------
 
+## Obstacles bucketed on a coarse grid so a point only checks the few near it. Each obstacle is
+## filed under every cell its circle plus OB_MARGIN touches, so one cell answers for any body up
+## to OB_MARGIN wide. Rebuilt whenever the obstacle count changes (worldgen only adds).
+const OB_CELL: float = 6.0
+const OB_MARGIN: float = 1.6
+var _ob_grid: Dictionary = {} # Vector2i -> PackedInt32Array of obstacle indices
+var _ob_grid_n: int = -1
+
+
+func _ob_index() -> void:
+	if _ob_grid_n == obstacles.size():
+		return
+	_ob_grid.clear()
+	for i: int in obstacles.size():
+		var ob: Dictionary = obstacles[i]
+		var c: Vector3 = ob["pos"]
+		var r: float = float(ob["r"]) + OB_MARGIN
+		for gx: int in range(floori((c.x - r) / OB_CELL), floori((c.x + r) / OB_CELL) + 1):
+			for gz: int in range(floori((c.z - r) / OB_CELL), floori((c.z + r) / OB_CELL) + 1):
+				var key := Vector2i(gx, gz)
+				# copy, then append: a packed array taken from a default (or a constant) is shared,
+				# and appending to it in place made every cell alias one growing list that outlived
+				# the world it was built for (worldgen stopped being deterministic)
+				var arr: PackedInt32Array = PackedInt32Array(_ob_grid[key]) if _ob_grid.has(key) else PackedInt32Array()
+				arr = arr.duplicate()
+				arr.append(i)
+				_ob_grid[key] = arr
+	_ob_grid_n = obstacles.size()
+
+
+## Indices of the obstacles that could touch a body at p no wider than OB_MARGIN.
+func obstacles_near(p: Vector3) -> PackedInt32Array:
+	_ob_index()
+	return _ob_grid.get(Vector2i(floori(p.x / OB_CELL), floori(p.z / OB_CELL)), PackedInt32Array())
+
+
+## True if p is within margin of any obstacle (margin up to OB_MARGIN).
+func blocked(p: Vector3, margin: float) -> bool:
+	for i: int in obstacles_near(p):
+		var ob: Dictionary = obstacles[i]
+		var c: Vector3 = ob["pos"]
+		if flat_dist(p, c) < float(ob["r"]) + margin:
+			return true
+	return false
+
+
 ## Push a point out of every stone and closed gate it overlaps.
 func push_out(p: Vector3, body_r: float) -> Vector3:
 	var q: Vector3 = p
-	for ob: Dictionary in obstacles:
+	for oi: int in obstacles_near(p):
+		var ob: Dictionary = obstacles[oi]
 		var c: Vector3 = ob["pos"]
 		var r: float = float(ob["r"]) + body_r
 		var d: Vector3 = q - c

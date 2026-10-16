@@ -153,7 +153,9 @@
       "throw_range": 5.0,
       "damage": 15.0,
       "attack": "latch",
-      "immune": [],
+      "immune": [
+        "gust"
+      ],
       "lag_bias": 0.14,
       "dig_mult": 0.7,
       "can_fly": false,

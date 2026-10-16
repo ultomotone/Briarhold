@@ -119,7 +119,8 @@ class WorldObject:
 
 class Enemy:
 	extends RefCounted
-	enum State { SLEEP, IDLE, CHASE, TELEGRAPH, RECOVER, SHAKE, DEAD, RETREAT, FROZEN }
+	# appended only: views and tests compare by name, and nothing saves the number
+	enum State { SLEEP, IDLE, CHASE, TELEGRAPH, RECOVER, SHAKE, DEAD, RETREAT, FROZEN, LEAP, RUSH, BURROW }
 	var id: int = 0
 	var type_id: String = "grub"
 	var pos: Vector3 = Vector3.ZERO
@@ -142,6 +143,16 @@ class Enemy:
 	var night: bool = false
 	var wander: Vector3 = Vector3.INF # roamers: where they are ambling to
 	var wander_t: float = 0.0
+	# abilities
+	var aim: Vector3 = Vector3.INF # where the telegraphed attack will land (fixed at the wind-up)
+	var leap_from: Vector3 = Vector3.ZERO
+	var leap_t: float = -1.0 # >=0 while airborne
+	var rush_dir: Vector3 = Vector3.ZERO
+	var rush_left: float = 0.0 # metres of the rush still to run
+	var dazed: bool = false # RECOVER after a rush: wobbling, open to hits
+	var surface_t: float = 0.0 # burrowers: seconds left above ground
+	var emerge: float = -1.0 # burrowers: >=0 while the mound rumbles before it comes up
+	var strike_t: float = 99.0 # seconds since the last strike landed (the view draws breath and wind from it)
 
 
 class Posy:

@@ -14,6 +14,7 @@ var _puffs: Array[MeshInstance3D] = []
 var _puff_life: PackedFloat32Array = []
 var _log: Array[String] = []
 var reduced_motion: bool = false
+var _met: Dictionary = {} # creature kinds already introduced in the log
 
 
 func build(p: PaletteData) -> void:
@@ -118,7 +119,11 @@ func handle(ev: Dictionary) -> void:
 			_puff(ev["pos"], pal.col("sprig_" + str(ev["type"])).lightened(0.3))
 		"arrivals":
 			var v: bool = bool(ev["visitor"])
-			_note("Day %d: %d beetles in the field%s" % [int(ev["day"]), int(ev["beetles"]), ", and something big came in from the rim" if v else ""])
+			var beast: String = str(ev.get("beast", ""))
+			var also: String = ""
+			if not beast.is_empty():
+				also = ". A %s has moved in somewhere" % _enemy_name(beast)
+			_note("Day %d: %d beetles in the field%s%s" % [int(ev["day"]), int(ev["beetles"]), ", and something big came in from the rim" if v else "", also])
 		"posy_grew":
 			_puff(ev["pos"] + Vector3(0.0, 1.2, 0.0), pal.col("sprig_" + str(ev["type"])).lightened(0.5))
 		"region_found":
@@ -135,7 +140,27 @@ func handle(ev: Dictionary) -> void:
 		"stored":
 			_note("Field full (%d). Seed kept inside; a Heartroot widens the field." % int(ev["cap"]))
 		"enemy_felled":
-			_note("Felled: " + _cap(str(ev["type"]).replace("_", " ")))
+			_note("Felled: " + _enemy_name(str(ev["type"])))
+		"telegraph":
+			# the first wind-up of each kind says what it is and how it fights
+			var kind_id: String = str(ev["type"])
+			if not _met.has(kind_id):
+				_met[kind_id] = true
+				var et: Types.EnemyType = Content.tables.enemy(kind_id)
+				if et != null and not et.line.is_empty():
+					_note("%s: %s" % [et.name, et.line])
+		"slam":
+			_puff(ev["pos"] + Vector3(0.0, 0.2, 0.0), pal.col("terrain_loam").lightened(0.3))
+		"erupt":
+			_puff(ev["pos"] + Vector3(0.0, 0.3, 0.0), pal.col("terrain_loam").lightened(0.2))
+		"dazed":
+			_puff(ev["pos"] + Vector3(0.0, 1.6, 0.0), pal.col("hud_accent"))
+		"breath":
+			var yaw: float = float(ev["yaw"])
+			var hz_col: Color = pal.col("hazard_poison") if str(ev["hazard"]) == "poison" else pal.col("vent_fire")
+			_puff(ev["pos"] + Vector3(sin(yaw) * 1.4, 0.8, cos(yaw) * 1.4), hz_col)
+		"gust", "leap", "rush", "burrow":
+			pass
 		"gate_opened":
 			_note("The bramble gate falls")
 		"dusk_warning":
@@ -152,7 +177,7 @@ func handle(ev: Dictionary) -> void:
 			_note(_cap(str(ev["type"])) + " shrine rooted at the Hold")
 		"offline":
 			_note("While away: %d nights, %d lost, %d matured" % [int(ev["nights"]), int(ev["lost"]), int(ev["matured"])])
-		"pluck", "throw", "whistle", "rooted", "matured", "status", "telegraph", "shake", "bite", "dismiss", "charge", "enemy_woke", "lost_follow", "knight_up", "dawn":
+		"pluck", "throw", "whistle", "rooted", "matured", "status", "shake", "bite", "dismiss", "charge", "enemy_woke", "lost_follow", "knight_up", "dawn":
 			pass
 
 
@@ -164,6 +189,11 @@ func _note(s: String) -> void:
 	_log.append(s)
 	if _log.size() > 6:
 		_log.pop_front()
+
+
+func _enemy_name(id: String) -> String:
+	var et: Types.EnemyType = Content.tables.enemy(id)
+	return et.name if et != null else _cap(id.replace("_", " "))
 
 
 func _cap(s: String) -> String:

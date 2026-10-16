@@ -127,6 +127,18 @@ class EnemyType:
 	var seeds: int
 	var value: int
 	var line: String
+	# abilities (see enemies.json _doc)
+	var attack_range: float
+	var cone_deg: float
+	var breath_hazard: String
+	var gust_push: float
+	var leap_radius: float
+	var leap_seconds: float
+	var charge_speed: float
+	var charge_distance: float
+	var daze_seconds: float
+	var front_multiplier: float
+	var surface_seconds: float
 
 	static func from_dict(d: Dictionary) -> EnemyType:
 		var t := EnemyType.new()
@@ -158,6 +170,17 @@ class EnemyType:
 		t.seeds = Types._i(d, "seeds", 5)
 		t.value = Types._i(d, "value")
 		t.line = Types._s(d, "line")
+		t.attack_range = Types._f(d, "attack_range", t.bite_reach + t.radius)
+		t.cone_deg = Types._f(d, "cone_deg", 50.0)
+		t.breath_hazard = Types._s(d, "breath_hazard", "fire")
+		t.gust_push = Types._f(d, "gust_push", 4.0)
+		t.leap_radius = Types._f(d, "leap_radius", 1.6)
+		t.leap_seconds = Types._f(d, "leap_seconds", 0.8)
+		t.charge_speed = Types._f(d, "charge_speed", 9.0)
+		t.charge_distance = Types._f(d, "charge_distance", 12.0)
+		t.daze_seconds = Types._f(d, "daze_seconds", 2.0)
+		t.front_multiplier = Types._f(d, "front_multiplier", 1.0)
+		t.surface_seconds = Types._f(d, "surface_seconds", 6.0)
 		return t
 
 

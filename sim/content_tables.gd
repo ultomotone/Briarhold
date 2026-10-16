@@ -87,8 +87,12 @@ func _validate() -> void:
 			errors.append("object %s cannot be lifted even by a full crew of the strongest sprigs" % id)
 	for id: String in enemies.keys():
 		var en: Types.EnemyType = enemy(id)
-		if en.bite_count < 0 or en.hp <= 0.0 or (en.attack == "bite" and en.bite_count < 1):
+		if en.bite_count < 0 or en.hp <= 0.0 or ((en.attack == "bite" or en.attack == "burrow") and en.bite_count < 1):
 			errors.append("enemy %s has a bad bite_count or hp" % id)
+		if not ["bite", "breath", "leap", "charge", "gust", "burrow", "none"].has(en.attack):
+			errors.append("enemy %s has unknown attack %s" % [id, en.attack])
+		if en.attack == "breath" and not hazards.has(en.breath_hazard):
+			errors.append("enemy %s breathes unknown hazard %s" % [id, en.breath_hazard])
 	if world.is_empty():
 		errors.append("world.json empty")
 	for row: Variant in regions.get("regions", []):

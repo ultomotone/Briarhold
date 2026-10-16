@@ -81,6 +81,11 @@ Standing test: could a player who never read a design document work out what thi
   it can bring home (S000e). Animation: sprigs ease their turns, stop pivoting in place,
   pop up from the ground, flip on a throw, and walk at the pace they actually move; the gnome
   swings from the hip; beasts ease their turns and step with their real speed.
+- 2026-10-16: "The Pikmin need to be cuter and the leaves more leafy; the pods at home need to
+  be clear which is which; zoom out farther; hold the scroll button and move the screen; smoother
+  day and night; keep adding terrain, it's basic; more animals that fight with different skills."
+  All in S000f. The middle-button drag turns and tilts the view around the gnome (an orbit, not a
+  free pan); if he meant sliding the view across the map, that is the next camera change.
 
 ## Keep — proven, protect it
 

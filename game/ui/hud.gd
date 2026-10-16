@@ -109,7 +109,11 @@ func build(p: PaletteData, t: ContentTables) -> void:
 	_log.anchor_top = 1.0
 	_log.anchor_bottom = 1.0
 	_log.offset_left = 20.0
-	_log.offset_top = -150.0
+	# wrapped short of the type chips in the middle: a long line (a creature's first showing)
+	# must not run under them
+	_log.offset_right = 470.0
+	_log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_log.offset_top = -170.0
 	_log.offset_bottom = -20.0
 	_log.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_log.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.8))
@@ -117,14 +121,14 @@ func build(p: PaletteData, t: ContentTables) -> void:
 	_log.add_theme_constant_override("shadow_offset_y", 1)
 	root.add_child(_log)
 	# bottom-right controls
-	_hint = UiKit.label(pal, "WASD move · right-click walk · left-click sword\nSpace throw · R whistle · X dismiss · C charge · Shift swarm\nQ / E type · F pluck · at a shrine: F takes out, G sends in · Z / V camera · Esc pause", 12, 0.6)
+	_hint = UiKit.label(pal, "WASD move · right-click walk · left-click sword\nSpace throw · R whistle · X dismiss · C charge · Shift swarm\nQ / E type · F pluck · at a shrine: F takes out, G sends in\nZ / V or hold middle mouse: turn camera · wheel zoom · Esc pause", 12, 0.6)
 	_hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	_hint.anchor_left = 1.0
 	_hint.anchor_top = 1.0
 	_hint.anchor_right = 1.0
 	_hint.anchor_bottom = 1.0
-	_hint.offset_left = -620.0
-	_hint.offset_top = -80.0
+	_hint.offset_left = -470.0
+	_hint.offset_top = -100.0
 	_hint.offset_right = -20.0
 	_hint.offset_bottom = -20.0
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT

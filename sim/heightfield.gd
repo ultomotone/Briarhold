@@ -60,7 +60,12 @@ func height_at(x: float, z: float) -> float:
 	h = (h / tot - 0.5) * 2.0 * amplitude
 	# rough country: a slow noise scales the relief, so there are downs and there are hills
 	var rough: float = 0.55 + noise2(x * frequency * 0.22 + 101.0, z * frequency * 0.22 - 57.0) * 1.1
-	h *= rough
+	h *= rough * 0.85
+	# ridges: sharp-crested folds where the country is roughest, so the hills have spines
+	var rn: float = noise2(x * frequency * 0.75 + 55.0, z * frequency * 0.75 - 23.0)
+	var ridge: float = 1.0 - absf(rn * 2.0 - 1.0)
+	h += ridge * ridge * ridge * amplitude * 0.5 * clampf((rough - 0.75) * 1.6, 0.0, 1.0)
+	h = clampf(h, -amplitude * 1.65, amplitude * 1.65)
 	# the clearing: flat within hold_radius, blending out over the same distance again
 	var r: float = sqrt(x * x + z * z)
 	var t: float = clampf((r - hold_radius) / hold_radius, 0.0, 1.0)
