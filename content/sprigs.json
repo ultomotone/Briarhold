@@ -1,5 +1,5 @@
 {
-  "_doc": "Sprig types. Names decode on sight (interface naming law). attack: latch = hang on and slap; impact = hit once on landing, never latch. immune: hazard ids from hazards.json. strength: carry contribution. damage: per slap. lag_bias: extra follow lag so types read differently in a crowd. throw_height: the arc's apex above the launch point; flight time follows from it, so a throw over the same wall always clears it.",
+  "_doc": "Sprig types. Names decode on sight (interface naming law). attack: latch = hang on and slap; impact = hit once on landing, never latch. immune: hazard ids from hazards.json. strength: carry contribution. damage: per slap. lag_bias: extra follow lag so types read differently in a crowd. throw_height: the arc's apex above the launch point; flight time follows from it, so a throw over the same wall always clears it. scale: body size on screen. wings: draws and flaps wings (flyers).",
   "types": [
     {
       "id": "ember",
@@ -17,7 +17,9 @@
       "dig_mult": 1.0,
       "can_fly": false,
       "line": "Walks through fire. Hits harder than the rest.",
-      "throw_height": 1.5
+      "throw_height": 1.5,
+      "scale": 1.0,
+      "wings": false
     },
     {
       "id": "stone",
@@ -36,7 +38,9 @@
       "dig_mult": 0.8,
       "can_fly": false,
       "line": "Cannot be crushed. Breaks crystal. Hits once on landing, never hangs on.",
-      "throw_height": 1.3
+      "throw_height": 1.3,
+      "scale": 1.0,
+      "wings": false
     },
     {
       "id": "spark",
@@ -54,7 +58,9 @@
       "dig_mult": 4.0,
       "can_fly": false,
       "line": "Thrown highest. Digs fastest. Carries a charge.",
-      "throw_height": 2.4
+      "throw_height": 2.4,
+      "scale": 0.95,
+      "wings": false
     },
     {
       "id": "tide",
@@ -72,7 +78,9 @@
       "dig_mult": 1.0,
       "can_fly": false,
       "line": "Walks under water. Pulls the drowning out.",
-      "throw_height": 1.5
+      "throw_height": 1.5,
+      "scale": 1.0,
+      "wings": false
     },
     {
       "id": "thorn",
@@ -90,7 +98,9 @@
       "dig_mult": 1.2,
       "can_fly": false,
       "line": "Fastest on its feet. Poisons what eats it.",
-      "throw_height": 1.5
+      "throw_height": 1.5,
+      "scale": 0.9,
+      "wings": false
     },
     {
       "id": "moth",
@@ -103,13 +113,16 @@
       "attack": "latch",
       "immune": [
         "crush",
-        "pit"
+        "pit",
+        "water"
       ],
       "lag_bias": 0.05,
       "dig_mult": 0.5,
       "can_fly": true,
       "line": "Flies over water and walls. Lifts what hangs.",
-      "throw_height": 1.8
+      "throw_height": 1.8,
+      "scale": 0.95,
+      "wings": true
     },
     {
       "id": "frost",
@@ -127,7 +140,9 @@
       "dig_mult": 1.0,
       "can_fly": false,
       "line": "Fills a freeze ring. Frozen things shatter or thaw to nectar.",
-      "throw_height": 1.5
+      "throw_height": 1.5,
+      "scale": 1.0,
+      "wings": false
     },
     {
       "id": "oak",
@@ -143,7 +158,9 @@
       "dig_mult": 0.7,
       "can_fly": false,
       "line": "Ten sprigs' strength. Slow. Lands like a dropped stone.",
-      "throw_height": 1.0
+      "throw_height": 1.0,
+      "scale": 1.22,
+      "wings": false
     },
     {
       "id": "wisp",
@@ -165,7 +182,9 @@
       "dig_mult": 1.0,
       "can_fly": false,
       "line": "Night only. Nothing on the ground can touch it. Gone at dawn.",
-      "throw_height": 1.5
+      "throw_height": 1.5,
+      "scale": 0.95,
+      "wings": false
     }
   ]
 }

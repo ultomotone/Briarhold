@@ -31,12 +31,12 @@
       "id": "shock",
       "name": "Shock",
       "status": "shocked",
-      "kill_after": 0.0,
+      "kill_after": 2.0,
       "whistle_cures": true,
       "flee": true,
       "knight_damage_per_sec": 12.0,
       "colour_key": "sprig_spark",
-      "speed_mult": 0.0,
+      "speed_mult": 0.4,
       "hazard_leave_cures": false,
       "disables_attack": true
     },
@@ -48,7 +48,7 @@
       "whistle_cures": true,
       "flee": true,
       "knight_damage_per_sec": 4.0,
-      "colour_key": "sprig_thorn",
+      "colour_key": "hazard_poison",
       "speed_mult": 2.0,
       "hazard_leave_cures": false,
       "disables_attack": false

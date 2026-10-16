@@ -19,6 +19,11 @@ seconds of play.
   out (F / G), cuter sprigs, auto-throw cadence.
 - [x] S000d The wider field: 240 m, hills, pools, two vents, two pockets, more of everything;
   posies on seeded timers, field beetles, dawn arrivals.
+- [x] S000e Every type in the field: six territories on a ring (Mere/Tide, Wire Fence/Spark,
+  Fume Bog/Thorn, Stone Stacks/Moth, Frost Hollow/Frost, Fallen Oak/Oak), each with its shrine,
+  four sprouts, and a cache only its type can bring out; 320 m field; minimap; routes by
+  carrier immunity; cleaner walk, turn, and throw animation. The type steps below now deepen
+  a first pass instead of starting from nothing.
 
 ## Arc 1 — Feel and legibility (the slice made honest)
 
@@ -40,7 +45,7 @@ seconds of play.
 - [ ] S009 Camera: smooth follow lead in the movement direction, a small pull-back when the squad
   spreads, the 45° turns eased.
 - [ ] S010 Minimap top-right: the field as a fog-of-war disc that fills in as he walks; shrines,
-  Hold, known gates and mouths as marks.
+  Hold, known gates and mouths as marks. First pass in S000e.
 
 ## Arc 1b — The village (owner ask, 2026-09-02: "build the village, defend that little area")
 
@@ -72,9 +77,9 @@ seconds of play.
   map (events → transitions, `do` verbs from a closed vocabulary, seconds on the state);
   `EnemySystem` becomes the interpreter; the Grub and Stalker are re-expressed as rows and the
   content test rejects unknown events or verbs. Shape in `docs/research/pikifen-notes.md`.
-- [ ] S017 Spark sprigs: shrine in the field behind a dirt wall; ×4 dig; the first buried relic.
-- [ ] S018 Electric wire hazard: Spark walks it, others are shocked and flee; a wire gate.
-- [ ] S019 Tide sprigs: a pool with a shrine on the far side; drowning status, Tide rescue.
+- [ ] S017 Spark sprigs: shrine in the field behind a dirt wall; ×4 dig; the first buried relic. First pass in S000e.
+- [ ] S018 Electric wire hazard: Spark walks it, others are shocked and flee; a wire gate. First pass in S000e.
+- [ ] S019 Tide sprigs: a pool with a shrine on the far side; drowning status, Tide rescue. First pass in S000e.
 - [ ] S020 Bridge: a `task` object kind with power = Σ strength, a goal, and speed above the
   goal; planks chipped from a pile carry to the gap and build it; the navmesh grows, with
   path-link flags (light-load, airborne) for Moth-only and Tide-only routes.
@@ -92,7 +97,7 @@ seconds of play.
   day).
 - [ ] S028 Blast burrs: craftable; a sprig carries one, drops it at a wall; reinforced walls.
 - [ ] S029 Provisions: fruit-like loads that feed the Hold; a Hold that eats grows its ring.
-- [ ] S030 Thorn sprigs: shrine behind a poison vent; ×2 on brambles; poison gas gate.
+- [ ] S030 Thorn sprigs: shrine behind a poison vent; ×2 on brambles; poison gas gate. First pass in S000e.
 
 ## Arc 4 — Night, made a game
 
@@ -105,10 +110,10 @@ seconds of play.
   more.
 - [ ] S035 Pollen: brewed from provisions; rage (×2 attack rate 30 s), petrify (9 s, no corpse).
 - [ ] S036 Morning report on the pause screen: what came, what was lost, what was kept.
-- [ ] S037 Frost sprigs: a frozen pool crossing; freeze ring on enemies; shatter airborne.
+- [ ] S037 Frost sprigs: a frozen pool crossing; freeze ring on enemies; shatter airborne. First pass in S000e.
 - [ ] S038 Crystal walls: Stone breaks them; a crystal-caged relic.
-- [ ] S039 Moth sprigs: fly over water and walls; lift a hanging bag gate.
-- [ ] S040 Oak sprigs: strength 10; a boulder only they move; slam stun on bosses.
+- [ ] S039 Moth sprigs: fly over water and walls; lift a hanging bag gate. First pass in S000e.
+- [ ] S040 Oak sprigs: strength 10; a boulder only they move; slam stun on bosses. First pass in S000e.
 
 ## Arc 5 — Wardens (the named ones)
 

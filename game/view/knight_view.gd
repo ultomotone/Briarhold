@@ -9,6 +9,9 @@ var body: Node3D
 var sword_pivot: Node3D
 var cap: Node3D
 var _walk_phase: float = 0.0
+var _legs: Array[Node3D] = []
+var _yaw: float = 0.0
+var _yaw_set: bool = false
 
 
 func build(pal: PaletteData) -> void:
@@ -21,14 +24,18 @@ func build(pal: PaletteData) -> void:
 	var m_steel := _mat(pal.col("knight_steel"), 0.3, 0.7)
 	body = Node3D.new()
 	add_child(body)
-	# boots
+	# legs on hip pivots, so they can stride
 	for sx: float in [-0.13, 0.13]:
+		var hip := Node3D.new()
+		hip.position = Vector3(sx, 0.3, 0.0)
+		body.add_child(hip)
 		var boot := _mesh(_box(0.16, 0.12, 0.26), m_boot)
-		boot.position = Vector3(sx, 0.06, 0.04)
-		body.add_child(boot)
+		boot.position = Vector3(0.0, -0.24, 0.04)
+		hip.add_child(boot)
 		var leg := _mesh(_cyl(0.07, 0.2), m_tunic)
-		leg.position = Vector3(sx, 0.2, 0.0)
-		body.add_child(leg)
+		leg.position = Vector3(0.0, -0.1, 0.0)
+		hip.add_child(leg)
+		_legs.append(hip)
 	# tunic: a round belly with a belt
 	var belly := SphereMesh.new()
 	belly.radius = 0.3
@@ -112,21 +119,31 @@ func build(pal: PaletteData) -> void:
 ## Called per frame with interpolated position, yaw, the swing phase (0..1 or -1) and speed.
 func pose(p: Vector3, yaw: float, swing: float, moving: bool, down: float, delta: float) -> void:
 	global_position = p
-	rotation.y = yaw
+	# facing eases instead of snapping
+	if not _yaw_set:
+		_yaw = yaw
+		_yaw_set = true
+	_yaw = lerp_angle(_yaw, yaw, clampf(delta * 14.0, 0.0, 1.0))
+	rotation.y = _yaw
 	if down >= 0.0:
 		body.rotation.x = lerpf(body.rotation.x, -PI * 0.5, clampf(delta * 6.0, 0.0, 1.0))
 		body.position.y = 0.35
 		return
 	body.rotation.x = 0.0
 	if moving:
-		_walk_phase += delta * 12.0
-		body.position.y = absf(sin(_walk_phase)) * 0.07
-		body.rotation.z = sin(_walk_phase) * 0.05
-		cap.rotation_degrees.x = -12.0 - sin(_walk_phase * 0.5) * 4.0
+		_walk_phase += delta * 11.0
+		body.position.y = absf(sin(_walk_phase)) * 0.05
+		body.rotation.z = sin(_walk_phase) * 0.035
+		cap.rotation_degrees.x = -12.0 - sin(_walk_phase) * 5.0
+		for i: int in _legs.size():
+			var sgn: float = 1.0 if i == 0 else -1.0
+			_legs[i].rotation.x = sin(_walk_phase) * 0.6 * sgn
 	else:
 		body.position.y = lerpf(body.position.y, 0.0, clampf(delta * 8.0, 0.0, 1.0))
-		body.rotation.z = 0.0
+		body.rotation.z = lerpf(body.rotation.z, 0.0, clampf(delta * 8.0, 0.0, 1.0))
 		cap.rotation_degrees.x = lerpf(cap.rotation_degrees.x, -12.0, clampf(delta * 6.0, 0.0, 1.0))
+		for leg: Node3D in _legs:
+			leg.rotation.x = lerpf(leg.rotation.x, 0.0, clampf(delta * 10.0, 0.0, 1.0))
 	if swing >= 0.0:
 		var t: float = swing
 		var ang: float

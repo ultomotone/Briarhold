@@ -31,12 +31,13 @@ func test_worldgen_is_deterministic() -> void:
 	for i: int in a.objects.size():
 		assert_eq(a.objects[i].pos, b.objects[i].pos)
 		assert_eq(a.objects[i].seed_id, b.objects[i].seed_id)
-	assert_eq(a.enemies.size(), 7 + 4)
+	assert_eq(a.enemies.size(), 7 + 4 + 2) # field grubs, beetles, two region guardians
 	assert_eq(a.gates.size(), 2)
-	assert_eq(a.hazards.size(), 2 + 4)
+	assert_eq(a.hazards.size(), 2 + 4 + 3 + 9 + 3 + 3) # vents, field pools, then the regions'
 	assert_eq(a.hazards[0].hazard_id, "fire")
 	assert_eq(a.posies.size(), 12)
-	assert_eq(a.sprouts.size(), 17)
+	assert_eq(a.regions.size(), 6)
+	assert_eq(a.sprouts.size(), 17 + 6 * 4)
 	var c := _world(4)
 	assert_ne(a.objects[0].pos, c.objects[0].pos)
 
@@ -471,6 +472,168 @@ func test_beetles_flee_and_dawn_brings_arrivals() -> void:
 	w.clock.time = w.clock.cycle() - 0.5
 	_run(w, cmd, 1.0)
 	assert_gt(w.enemies.size(), before)
+
+
+func test_every_type_has_a_territory_with_its_shrine_and_sprouts() -> void:
+	var w := _world()
+	for id: String in ["tide", "spark", "thorn", "moth", "frost", "oak"]:
+		var region: Dictionary = {}
+		for r: Dictionary in w.regions:
+			if r["type"] == id:
+				region = r
+		assert_false(region.is_empty(), "region for " + id)
+		var shrine: Entities.WorldObject = null
+		for o: Entities.WorldObject in w.objects:
+			if o.kind == "shrine" and o.shrine_type == id:
+				shrine = o
+		assert_not_null(shrine, "shrine for " + id)
+		assert_lt(SimWorld.flat_dist(shrine.pos, region["pos"]), float(region["radius"]), id + " shrine inside its region")
+		var sprouts: int = 0
+		for sp: Entities.Sprout in w.sprouts:
+			if sp.type_id == id:
+				sprouts += 1
+		assert_eq(sprouts, 4, id + " sprouts")
+		assert_lt(SimWorld.flat_dist(region["pos"], w.hold.pos), w.field.bound, id + " region inside the field")
+
+
+func test_route_avoids_what_some_carrier_is_not_immune_to() -> void:
+	var w := _world()
+	var o: Entities.WorldObject = w.spawn_object("pellet_5", Vector3(0.0, 0.0, 20.0), "", "tide")
+	for i: int in 3:
+		CarrySystem.join(w, w.spawn_sprig("tide", o.pos + Vector3(0.3 * float(i), 0.0, 0.6), Entities.Sprig.State.IDLE), o)
+	var r: Dictionary = CarrySystem.route_for(w, o)
+	assert_false((r["avoid"] as PackedStringArray).has("water"), "an all-Tide crew wades")
+	assert_true((r["avoid"] as PackedStringArray).has("fire"))
+	assert_false(bool(r["fly"]))
+	CarrySystem.join(w, w.spawn_sprig("ember", o.pos + Vector3(-0.6, 0.0, 0.6), Entities.Sprig.State.IDLE), o)
+	r = CarrySystem.route_for(w, o)
+	assert_true((r["avoid"] as PackedStringArray).has("water"), "one Ember carrier and the trip goes round")
+	var m: Entities.WorldObject = w.spawn_object("pellet_1", Vector3(10.0, 0.0, 20.0), "", "moth")
+	for i: int in 2:
+		CarrySystem.join(w, w.spawn_sprig("moth", m.pos + Vector3(0.3 * float(i), 0.0, 0.6), Entities.Sprig.State.IDLE), m)
+	assert_true(bool(CarrySystem.route_for(w, m)["fly"]), "all Moths fly it")
+
+
+func test_tide_and_moth_keep_dry_and_ember_drowns() -> void:
+	var w := _world()
+	var pool: Entities.HazardZone = null
+	for z: Entities.HazardZone in w.hazards:
+		if z.hazard_id == "water":
+			pool = z
+			break
+	w.knight.pos = pool.pos + Vector3(30.0, 0.0, 0.0)
+	var tide: Entities.Sprig = w.spawn_sprig("tide", pool.pos, Entities.Sprig.State.IDLE)
+	var moth: Entities.Sprig = w.spawn_sprig("moth", pool.pos + Vector3(0.3, 0.0, 0.0), Entities.Sprig.State.IDLE)
+	var ember: Entities.Sprig = w.spawn_sprig("ember", pool.pos + Vector3(-0.3, 0.0, 0.0), Entities.Sprig.State.IDLE)
+	for s: Entities.Sprig in [tide, moth, ember]:
+		s.stun = 999.0
+	_run(w, Commands.new(), 6.0)
+	assert_ne(tide.state, Entities.Sprig.State.DEAD)
+	assert_ne(moth.state, Entities.Sprig.State.DEAD)
+	assert_eq(ember.state, Entities.Sprig.State.DEAD)
+
+
+func test_spark_crosses_the_fence_others_are_shocked() -> void:
+	var w := _world()
+	var z: Entities.HazardZone = null
+	for h: Entities.HazardZone in w.hazards:
+		if h.hazard_id == "shock":
+			z = h
+			break
+	w.knight.pos = z.pos + Vector3(30.0, 0.0, 0.0)
+	var spark: Entities.Sprig = w.spawn_sprig("spark", z.pos, Entities.Sprig.State.IDLE)
+	var stone: Entities.Sprig = w.spawn_sprig("stone", z.pos, Entities.Sprig.State.IDLE)
+	_run(w, Commands.new(), 0.3)
+	assert_eq(spark.status, "")
+	assert_eq(stone.status, "shocked")
+
+
+func test_frost_slaps_freeze_a_grub_solid() -> void:
+	var w := _world()
+	w.enemies.clear()
+	var e: Entities.Enemy = w.spawn_enemy("grub", Vector3(0.0, 0.0, 30.0))
+	e.state = Entities.Enemy.State.IDLE
+	w.knight.pos = Vector3(0.0, 0.0, -30.0)
+	for i: int in 6:
+		var s: Entities.Sprig = w.spawn_sprig("frost", e.pos, Entities.Sprig.State.ATTACK)
+		s.enemy_id = e.id
+		s.latched = true
+		s.anchor = i * 2
+	var froze: bool = false
+	var cmd := Commands.new()
+	for i: int in 300:
+		w.step(cmd, SimWorld.FIXED_DT)
+		for ev: Dictionary in w.events.drain():
+			if ev["kind"] == "frozen":
+				froze = true
+	assert_true(froze)
+	assert_eq(e.state, Entities.Enemy.State.FROZEN)
+	var p0: Vector3 = e.pos
+	_run(w, cmd, 1.0)
+	assert_eq(e.pos, p0, "frozen things do not move")
+
+
+func test_a_grub_that_eats_thorns_is_poisoned() -> void:
+	var w := _world()
+	w.enemies.clear()
+	var e: Entities.Enemy = w.spawn_enemy("grub", Vector3(0.0, 0.0, 30.0))
+	e.state = Entities.Enemy.State.IDLE
+	e.yaw = 0.0
+	w.knight.pos = Vector3(0.0, 0.0, -40.0)
+	for i: int in 3:
+		var s: Entities.Sprig = w.spawn_sprig("thorn", e.pos + Vector3(float(i) * 0.25 - 0.25, 0.0, 1.5), Entities.Sprig.State.IDLE)
+		s.stun = 999.0
+	var poison: float = 0.0
+	var cmd := Commands.new()
+	for i: int in 240:
+		w.step(cmd, SimWorld.FIXED_DT)
+		for ev: Dictionary in w.events.drain():
+			if ev["kind"] == "damage" and ev["cause"] == "Thorn poison":
+				poison += float(ev["amount"])
+	assert_almost_eq(poison, 3.0 * tables.wn("thorn", "poison_damage", 150.0), 0.01)
+
+
+func test_walking_into_a_region_finds_it_and_the_save_keeps_it() -> void:
+	var w := _world()
+	var r: Dictionary = w.regions[0]
+	w.knight.pos = w.ground(r["pos"])
+	var found: String = ""
+	var cmd := Commands.new()
+	for i: int in 20:
+		w.step(cmd, SimWorld.FIXED_DT)
+		for ev: Dictionary in w.events.drain():
+			if ev["kind"] == "region_found":
+				found = ev["id"]
+	assert_eq(found, r["id"])
+	assert_true(w.discovered.has(r["id"]))
+	var back: SimWorld = Serialize.from_doc(tables, Serialize.to_doc(w, 1000))
+	assert_true(back.discovered.has(r["id"]))
+
+
+class NoPath:
+	extends PathProvider
+
+	func path(_from: Vector3, _to: Vector3, _avoid: PackedStringArray = PackedStringArray(), _fly: bool = false) -> PackedVector3Array:
+		return PackedVector3Array()
+
+
+func test_a_load_with_no_way_home_stays_put_and_says_so() -> void:
+	var w := _world()
+	w.paths = NoPath.new()
+	var o: Entities.WorldObject = w.spawn_object("pellet_1", Vector3(0.0, 0.0, 30.0), "", "ember")
+	for i: int in 2:
+		CarrySystem.join(w, w.spawn_sprig("ember", o.pos + Vector3(0.3 * float(i), 0.0, 0.6), Entities.Sprig.State.IDLE), o)
+	var p0: Vector3 = o.pos
+	var said: bool = false
+	var cmd := Commands.new()
+	for i: int in 400:
+		w.step(cmd, SimWorld.FIXED_DT)
+		for ev: Dictionary in w.events.drain():
+			if ev["kind"] == "stuck":
+				said = true
+	assert_lt(SimWorld.flat_dist(o.pos, p0), 0.01)
+	assert_false(o.taken)
+	assert_true(said)
 
 
 func test_no_engine_randomness_in_sim() -> void:

@@ -74,6 +74,13 @@ Standing test: could a player who never read a design document work out what thi
   installed beside 4.7.2 in `%USERPROFILE%\Tools\Godot-4.8-beta1`, checksum verified; the gate
   passed on it unchanged (68 tests, five shots, no new warnings, identical renders). The gate,
   launchers, feature tag, and export templates now default to 4.8; 4.7.2 stays as the fallback.
+- 2026-10-16: "I don't think we have water Pikmin yet... did we have a feature list? I want
+  the animation cleaner and the territory expanding." The feature list is this roadmap; the
+  six types were rows in content with no shrine anywhere, waiting on builder runs that never
+  ran. Now each has a territory on a ring 122 m out with its shrine, sprouts, and a cache only
+  it can bring home (S000e). Animation: sprigs ease their turns, stop pivoting in place,
+  pop up from the ground, flip on a throw, and walk at the pace they actually move; the gnome
+  swings from the hip; beasts ease their turns and step with their real speed.
 
 ## Keep — proven, protect it
 

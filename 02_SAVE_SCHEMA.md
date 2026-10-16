@@ -19,6 +19,7 @@ Persist only what cannot be regenerated:
 - `deltas` — what he changed: `taken` (object seed_ids), `felled` (enemy seed_ids), `opened`
   (gate seed_ids), `rooted` (shrine types carried home).
 - `knight`, `hold`, `sprigs`, `sprouts`, `shrines`, `day`, `clock_time`, `lost_total`, `saved_at`.
+- `discovered` — territory ids he has walked into (v2).
 
 Everything rolled from the seed comes back from `Worldgen.populate` and the deltas apply over it.
 Objects spawned in play without a seed_id (corpses) are not persisted; that matches the world's
@@ -41,3 +42,5 @@ own rule that corpses do not survive a day.
 ## Versions
 
 - **v1** (2026-09-02) — the first shape, as above.
+- **v2** (2026-10-16) — adds `discovered` (array of region ids, default empty). Fixture
+  `tests/fixtures/save-v2.json`.

@@ -1,12 +1,12 @@
 {
   "_doc": "World-shape and rule numbers. Units: the knight is 1.0 tall; the field is size x size centred on the Hold at the origin. Times in seconds of real play. Squad, carry, and sprout numbers follow Pikifen's shipped config at our scale (1 m ~ 24 Pikifen px); see docs/research/pikifen-notes.md.",
-  "size": 240.0,
-  "bound": 114.0,
+  "size": 320.0,
+  "bound": 154.0,
   "hold_radius": 9.0,
   "hold_safe_radius": 14.0,
   "terrain_amplitude": 6.0,
   "terrain_frequency": 0.028,
-  "field_cap_start": 40,
+  "field_cap_start": 50,
   "field_cap_per_heartroot": 10,
   "day_seconds": 900.0,
   "night_seconds": 360.0,
@@ -87,5 +87,15 @@
     "beetles_max": 5,
     "visitor_chance": 0.5,
     "start_beetles": 4
+  },
+  "frost": {
+    "_doc": "Each Frost slap adds buildup_per_slap to the enemy's freeze meter; full, it is frozen solid for frozen_seconds (no moving, biting, or shaking). The meter drains at decay_per_sec.",
+    "buildup_per_slap": 0.08,
+    "frozen_seconds": 6.0,
+    "decay_per_sec": 0.05
+  },
+  "thorn": {
+    "_doc": "A Thorn sprig that gets eaten poisons the eater for poison_damage.",
+    "poison_damage": 150.0
   }
 }

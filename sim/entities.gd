@@ -106,6 +106,9 @@ class WorldObject:
 	var path_i: int = 0
 	var path_gen: int = -1
 	var dest_type: String = "" # which shrine the path was built for ("" = the Hold centre)
+	var route_key: String = "" # destination + what the carriers must avoid + whether they fly
+	var stuck_t: float = 0.0 # >0: no route home; waits, then asks again
+	var stuck_count: int = 0
 	## Delivery: the load is drawn up into the shrine over absorb_seconds, then becomes seeds.
 	var absorb_t: float = -1.0 # <0 not delivering
 	var absorb_to: Vector3 = Vector3.ZERO
@@ -116,7 +119,7 @@ class WorldObject:
 
 class Enemy:
 	extends RefCounted
-	enum State { SLEEP, IDLE, CHASE, TELEGRAPH, RECOVER, SHAKE, DEAD, RETREAT }
+	enum State { SLEEP, IDLE, CHASE, TELEGRAPH, RECOVER, SHAKE, DEAD, RETREAT, FROZEN }
 	var id: int = 0
 	var type_id: String = "grub"
 	var pos: Vector3 = Vector3.ZERO
@@ -130,6 +133,7 @@ class Enemy:
 	var cooldown: float = 0.0
 	var itch: float = 0.0
 	var itch_t: float = 99.0 # seconds since the last shake
+	var freeze: float = 0.0 # Frost buildup 0..1; full freezes it solid
 	var target_pos: Vector3 = Vector3.INF
 	var target_kind: String = "" # "knight" | "sprig" | "hold"
 	var target_id: int = -1

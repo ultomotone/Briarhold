@@ -44,6 +44,7 @@ static func to_doc(w: SimWorld, now_unix: int) -> Dictionary:
 		"shrines": shrines,
 		"deltas": deltas,
 		"lost_total": w.lost_total,
+		"discovered": Array(w.discovered),
 	}
 
 
@@ -111,6 +112,7 @@ static func from_doc(tables: ContentTables, raw: Dictionary) -> SimWorld:
 	w.clock.day = int(doc["day"])
 	w.clock.time = float(doc["clock_time"])
 	w.lost_total = int(doc["lost_total"])
+	w.discovered = PackedStringArray(doc.get("discovered", []))
 	w._end_tick()
 	w.nav_dirty = true
 	return w

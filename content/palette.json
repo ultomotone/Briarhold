@@ -57,7 +57,9 @@
     "enemy_beetle_shell": "#8fa35a",
     "pool_water": "#3a78b8",
     "pool_rim": "#6f7a5a",
-    "posy_stalk": "#5f8a3e"
+    "posy_stalk": "#5f8a3e",
+    "hazard_poison": "#8a5fc4",
+    "landmark_stone": "#8e8a7e"
   },
   "numbers": {
     "sun_energy_day": 1.25,

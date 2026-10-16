@@ -4,7 +4,7 @@
 class_name Migrate
 extends RefCounted
 
-const CURRENT: int = 1
+const CURRENT: int = 2
 const KEY: String = "briarhold:save" # the slot file's identity line; never changes
 
 
@@ -13,6 +13,8 @@ static func run(doc: Dictionary) -> Dictionary:
 	var v: int = int(d.get("schemaVersion", 0))
 	if v < 1:
 		d = _to_v1(d)
+	if v < 2:
+		d = _to_v2(d)
 	d["schemaVersion"] = CURRENT
 	d["key"] = KEY
 	return d
@@ -54,6 +56,12 @@ static func _to_v1(d: Dictionary) -> Dictionary:
 	_default(dl, "rooted", [])
 	_default(d, "lost_total", 0)
 	_default(d, "name", "Briarhold")
+	return d
+
+
+## v2 (2026-10-16): the outer territories. Which regions he has walked into.
+static func _to_v2(d: Dictionary) -> Dictionary:
+	_default(d, "discovered", [])
 	return d
 
 

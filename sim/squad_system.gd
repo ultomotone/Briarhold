@@ -489,9 +489,13 @@ static func _follow(w: SimWorld, s: Entities.Sprig, swarm_at: Vector3, dt: float
 	s.smooth_target = s.smooth_target.lerp(desired, a)
 	var d: float = SimWorld.flat_dist(s.pos, s.smooth_target)
 	if d > 0.21:
-		s.yaw = SimWorld.yaw_toward(s.pos, s.smooth_target, s.yaw)
+		# face the way it walks, but not for the last little shuffle: that reads as twitching
+		if d > 0.4:
+			s.yaw = SimWorld.yaw_toward(s.pos, s.smooth_target, s.yaw)
 		s.pos = w.step_toward(s.pos, s.smooth_target, minf(speed, d / dt * 0.5 + 0.5), dt, 0.2)
 	else:
+		# settled: turn, slowly, to face where he faces
+		s.yaw = lerp_angle(s.yaw, k.yaw, clampf(dt * 3.0, 0.0, 1.0))
 		s.pos = w.push_out(s.pos, 0.2)
 
 
@@ -676,6 +680,8 @@ static func _attack(w: SimWorld, s: Entities.Sprig, dt: float) -> void:
 		if s.slap_t >= SLAP_INTERVAL:
 			s.slap_t -= SLAP_INTERVAL
 			Damage.to_enemy(w, e, Damage.facing_mult(e, et, s.pos) * t.damage, t.name + " sprig", e.pos + Vector3(0.0, et.height, 0.0))
+			if s.type_id == "frost":
+				EnemySystem.add_freeze(w, e, w.content.wn("frost", "buildup_per_slap", 0.08))
 		return
 	if s.gate_id >= 0:
 		var g: Entities.Gate = w.gate_by_id(s.gate_id)
@@ -718,7 +724,7 @@ static func _separate(w: SimWorld) -> void:
 			if len < 0.001:
 				d = Vector3(sin(float(s.id)), 0.0, cos(float(s.id)))
 				len = 1.0
-			push += d * ((r - len) / len) * 0.5
+			push += d * ((r - len) / len) * 0.3
 		if push.length_squared() > 0.0:
 			s.pos = w.ground(w.field.clamp_bound(s.pos + push))
 

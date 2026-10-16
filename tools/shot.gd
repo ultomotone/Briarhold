@@ -32,6 +32,14 @@ func _ready() -> void:
 	await _settle(40)
 	if not await _capture("latest-whistle.png"):
 		return
+	main.shot_pose("region:wire_fence")
+	await _settle(45)
+	if not await _capture("latest-region-fence.png"):
+		return
+	main.shot_pose("region:mere")
+	await _settle(45)
+	if not await _capture("latest-region-mere.png"):
+		return
 	main.shot_pose("night")
 	await _settle(30)
 	if not await _capture("latest-night.png"):

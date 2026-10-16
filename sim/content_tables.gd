@@ -12,6 +12,7 @@ var objects: Dictionary = {}
 var enemies: Dictionary = {}
 var hazards: Dictionary = {}
 var world: Dictionary = {}
+var regions: Dictionary = {} # regions.json as read: ring_distance, radius, sprouts, regions[]
 var errors: PackedStringArray = []
 
 
@@ -35,6 +36,7 @@ static func load_all(dir: String = "res://content/") -> ContentTables:
 		var t := Types.HazardType.from_dict(row)
 		c.hazards[t.id] = t
 	c.world = c._read(dir + "world.json")
+	c.regions = c._read(dir + "regions.json")
 	c._validate()
 	return c
 
@@ -75,16 +77,29 @@ func _validate() -> void:
 				errors.append("sprig %s immune to unknown hazard %s" % [id, hz])
 		if t.attack != "latch" and t.attack != "impact":
 			errors.append("sprig %s has unknown attack %s" % [id, t.attack])
+	# a load must be liftable by a full crew of the strongest type (the Brass Acorn is Oak work)
+	var strongest: int = 1
+	for id: String in sprigs.keys():
+		strongest = maxi(strongest, sprig(id).strength)
 	for id: String in objects.keys():
 		var o: Types.ObjectType = object(id)
-		if o.max_carriers < o.weight:
-			errors.append("object %s max_carriers < weight" % id)
+		if o.max_carriers * strongest < o.weight:
+			errors.append("object %s cannot be lifted even by a full crew of the strongest sprigs" % id)
 	for id: String in enemies.keys():
 		var en: Types.EnemyType = enemy(id)
 		if en.bite_count < 0 or en.hp <= 0.0 or (en.attack == "bite" and en.bite_count < 1):
 			errors.append("enemy %s has a bad bite_count or hp" % id)
 	if world.is_empty():
 		errors.append("world.json empty")
+	for row: Variant in regions.get("regions", []):
+		var r: Dictionary = row
+		if not sprigs.has(str(r.get("type", ""))):
+			errors.append("region %s has unknown sprig type" % str(r.get("id", "?")))
+		var hz: String = str(r.get("hazard", ""))
+		if not hz.is_empty() and not hazards.has(hz):
+			errors.append("region %s has unknown hazard %s" % [str(r.get("id", "?")), hz])
+		if not objects.has(str(r.get("relic", ""))):
+			errors.append("region %s has unknown relic" % str(r.get("id", "?")))
 
 
 ## Nested world number, e.g. wn("knight", "speed").

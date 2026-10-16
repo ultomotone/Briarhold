@@ -44,6 +44,8 @@ class SprigType:
 	var lag_bias: float
 	var dig_mult: float
 	var can_fly: bool
+	var scale: float
+	var wings: bool
 	var line: String
 
 	static func from_dict(d: Dictionary) -> SprigType:
@@ -61,6 +63,8 @@ class SprigType:
 		t.lag_bias = Types._f(d, "lag_bias")
 		t.dig_mult = Types._f(d, "dig_mult", 1.0)
 		t.can_fly = Types._b(d, "can_fly")
+		t.scale = Types._f(d, "scale", 1.0)
+		t.wings = Types._b(d, "wings")
 		t.line = Types._s(d, "line")
 		return t
 

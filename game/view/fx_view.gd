@@ -121,6 +121,15 @@ func handle(ev: Dictionary) -> void:
 			_note("Day %d: %d beetles in the field%s" % [int(ev["day"]), int(ev["beetles"]), ", and something big came in from the rim" if v else ""])
 		"posy_grew":
 			_puff(ev["pos"] + Vector3(0.0, 1.2, 0.0), pal.col("sprig_" + str(ev["type"])).lightened(0.5))
+		"region_found":
+			_note("Found: %s. %s" % [str(ev["name"]), str(ev["line"])])
+		"frozen":
+			_puff(ev["pos"] + Vector3(0.0, 0.8, 0.0), pal.col("sprig_frost"))
+			_note("Frozen solid.")
+		"thawed":
+			pass
+		"stuck":
+			_note("%s can't be carried home from there. Some other sprig could." % str(ev["name"]))
 		"withdraw":
 			_puff(ev["pos"], pal.col("sprig_" + str(ev["type"])).lightened(0.4))
 		"stored":

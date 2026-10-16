@@ -139,6 +139,78 @@
       "value": 55,
       "radius": 0.6,
       "set": "coins"
+    },
+    {
+      "id": "relic_shell",
+      "name": "River Shell",
+      "kind": "relic",
+      "weight": 3,
+      "max_carriers": 6,
+      "seeds_match": 0,
+      "seeds_other": 0,
+      "value": 80,
+      "radius": 0.5,
+      "set": "shore"
+    },
+    {
+      "id": "relic_lens",
+      "name": "Glass Lens",
+      "kind": "relic",
+      "weight": 4,
+      "max_carriers": 8,
+      "seeds_match": 0,
+      "seeds_other": 0,
+      "value": 110,
+      "radius": 0.55,
+      "set": "glass"
+    },
+    {
+      "id": "relic_pin",
+      "name": "Sewing Pin",
+      "kind": "relic",
+      "weight": 1,
+      "max_carriers": 2,
+      "seeds_match": 0,
+      "seeds_other": 0,
+      "value": 45,
+      "radius": 0.35,
+      "set": "sewing"
+    },
+    {
+      "id": "relic_feather",
+      "name": "Jay Feather",
+      "kind": "relic",
+      "weight": 2,
+      "max_carriers": 4,
+      "seeds_match": 0,
+      "seeds_other": 0,
+      "value": 95,
+      "radius": 0.45,
+      "set": "nest"
+    },
+    {
+      "id": "relic_opal",
+      "name": "Frost Opal",
+      "kind": "relic",
+      "weight": 5,
+      "max_carriers": 10,
+      "seeds_match": 0,
+      "seeds_other": 0,
+      "value": 150,
+      "radius": 0.6,
+      "set": "glass"
+    },
+    {
+      "id": "relic_acorn",
+      "name": "Brass Acorn",
+      "kind": "relic",
+      "weight": 40,
+      "max_carriers": 24,
+      "seeds_match": 0,
+      "seeds_other": 0,
+      "value": 300,
+      "radius": 1.0,
+      "set": "nest"
     }
   ]
 }

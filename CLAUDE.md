@@ -58,7 +58,7 @@ has a home here (see `docs/design/CODEX.md` §2); Nintendo's names, art, and cod
 You cannot see the screen. Shader and layout code can compile and render as mush. **Before you
 finish any run that touched rendering, layout, colour, or animation**, run the full gate and
 **read every PNG in `logs/` with the Read tool** (`latest-desktop`, `latest-throw`,
-`latest-whistle`, `latest-night`, `latest-title`). Is it legible? Anything overlapping, clipped,
+`latest-whistle`, `latest-region-fence`, `latest-region-mere`, `latest-night`, `latest-title`). Is it legible? Anything overlapping, clipped,
 invisible, blown out, washed out? Would it look deliberate to someone who did not write it?
 Fix, re-shoot, repeat. Three iterations against a screenshot is a good use of the run.
 

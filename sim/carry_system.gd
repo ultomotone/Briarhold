@@ -124,16 +124,37 @@ static func step(w: SimWorld, dt: float) -> void:
 		j.moving = strength >= o.weight
 		if not j.moving:
 			continue
-		# path to the shrine of the majority type (or the Hold), re-requested when the walkable
-		# set changed or the majority changed hands
+		# the route home: to the majority type's shrine, around every hazard some carrier is not
+		# immune to, or straight over everything if they all fly. Re-asked when any of that, or
+		# the walkable set, changes.
 		var maj: String = majority_type(w, o)
-		if o.path.is_empty() or o.path_gen != w.paths.generation or maj != o.dest_type:
+		var route: Dictionary = route_for(w, o)
+		var key: String = "%s|%s|%s" % [maj, ",".join(route["avoid"]), str(route["fly"])]
+		if o.stuck_t > 0.0 and key == o.route_key and o.path_gen == w.paths.generation:
+			o.stuck_t -= dt
+			continue
+		if o.path.is_empty() or o.path_gen != w.paths.generation or key != o.route_key:
 			o.dest_type = maj
-			o.path = w.paths.path(o.pos, destination(w, o))
+			o.route_key = key
+			o.path = w.paths.path(o.pos, destination(w, o), route["avoid"], route["fly"])
 			o.path_i = 1
 			o.path_gen = w.paths.generation
+			if o.path.is_empty():
+				if not w.paths.is_ready():
+					o.stuck_t = 0.5 # the routes are still being worked out; wait without a word
+					continue
+				o.stuck_t = 2.0
+				o.stuck_count += 1
+				if o.stuck_count == 2:
+					w.events.push("stuck", {"pos": o.pos, "name": o.name})
+				continue
+			o.stuck_count = 0
 		if o.path_i >= o.path.size():
-			_deliver(w, j, o)
+			if SimWorld.flat_dist(o.pos, destination(w, o)) <= arrive_radius(w, o) + 1.0:
+				_deliver(w, j, o)
+			else:
+				o.path = PackedVector3Array() # a stale route ran out short: ask again
+				o.stuck_t = 1.0
 			continue
 		var speed: float = speed_for(c, o, on_count, mat_sum / float(on_count))
 		var wp: Vector3 = o.path[o.path_i]
@@ -152,6 +173,36 @@ static func step(w: SimWorld, dt: float) -> void:
 		o.yaw = lerp_angle(o.yaw, heading, clampf(dt * 3.0, 0.0, 1.0))
 		if o.kind != "shrine" and SimWorld.flat_dist(o.pos, destination(w, o)) <= arrive_radius(w, o):
 			_deliver(w, j, o)
+
+
+## What this carrier group has to route around, and whether it flies. A hazard is avoided if any
+## carrier is not immune to it (one drowning carrier drowns the trip); flying needs every carrier
+## to fly.
+static func route_for(w: SimWorld, o: Entities.WorldObject) -> Dictionary:
+	var ids: PackedStringArray = []
+	for z: Entities.HazardZone in w.hazards:
+		if not ids.has(z.hazard_id):
+			ids.append(z.hazard_id)
+	ids.sort()
+	var types: Array[Types.SprigType] = []
+	for sid: int in o.carriers:
+		var s: Entities.Sprig = w.sprig_by_id(sid)
+		if s != null:
+			types.append(w.sprig_type(s))
+	var fly: bool = not types.is_empty()
+	for t: Types.SprigType in types:
+		if not t.can_fly:
+			fly = false
+	var avoid: PackedStringArray = []
+	for id: String in ids:
+		var all_immune: bool = not types.is_empty()
+		for t: Types.SprigType in types:
+			if not t.immune.has(id):
+				all_immune = false
+				break
+		if not all_immune:
+			avoid.append(id)
+	return {"avoid": avoid, "fly": fly}
 
 
 static func majority_type(w: SimWorld, o: Entities.WorldObject) -> String:

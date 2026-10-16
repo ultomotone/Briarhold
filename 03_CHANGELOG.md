@@ -1,5 +1,39 @@
 # CHANGELOG — decisions with reasoning, newest first
 
+## 2026-10-16 — S000e: every type in the field (owner-present session)
+
+He asked where the water sprigs were. Seven types were in `content/sprigs.json`; only Ember and
+Stone had a shrine in the world. The other six waited on roadmap steps (S017–S040) that the
+never-registered schedule was meant to build. Now they are in the field, one territory each,
+from `content/regions.json`, on a ring 122 m from the Hold at seeded angles:
+
+- **The Mere** (Tide): three pools sunk into the ground (the heightfield has basins now). A
+  shell relic sits on the bottom; only an all-Tide crew wades it out.
+- **The Wire Fence** (Spark): nine live posts with wires. Others are shocked (slowed, killed
+  after 2 s); Spark walks through and brings the lens out.
+- **The Fume Bog** (Thorn): poison gas over a cache and a Heartroot, a grub on guard. Thorns
+  breathe it, and a beast that eats a Thorn takes 150 poison.
+- **The Stone Stacks** (Moth): thirteen standing stones with no way in. Moths fly the feather
+  out over the top; an all-Moth crew flies straight.
+- **The Frost Hollow** (Frost): frozen ground and a guardian grub. Frost slaps build a freeze
+  meter; full, the beast is frozen solid for 6 s.
+- **The Fallen Oak** (Oak): a brass acorn of weight 40. Only Oak strength lifts it in one trip.
+
+Why routing changed: a load now asks for a route its carriers are all immune to. The view keeps
+two navmeshes (hazards walled off, hazards open) and picks by the crew. A crew with no way home
+stays put and says so instead of walking through walls. Bakes run on a worker thread; carriers
+wait while the routes are worked out. The field is 320 m (was 240). A minimap under the counts
+shows the Hold, the safe ring, each territory as "?" until found, shrines, and stalkers at night.
+Walking into a territory names it ("Found: The Mere") and the save keeps it (schema v2, golden
+fixture `save-v2.json`, v1 migrates with nothing found).
+
+Animation: sprigs ease their turns and only face the way they move when they move; settled
+followers turn with the gnome; new sprigs pop up out of the sprout; thrown sprigs tumble once;
+the walk cycle runs at the speed they actually move; Moths have wings that flap. The gnome's legs
+swing from the hip. Beasts ease their turns and step at their real speed; carried loads bob.
+
+**Gate.** import · check · 78 tests · seven shots read, plus one probe shot per territory.
+
 ## 2026-10-16 — Godot 4.8 beta 1 (owner ruling)
 
 The engine moves from 4.7.2 to 4.8 beta 1 at his request. Installed side by side from the

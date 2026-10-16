@@ -161,6 +161,8 @@ func _mount(w: SimWorld) -> void:
 
 
 func _unmount() -> void:
+	if nav != null:
+		nav.dispose()
 	for c: Node in world_root.get_children():
 		c.queue_free()
 	sim = null
@@ -229,7 +231,7 @@ func _physics_process(delta: float) -> void:
 	cmd.store_held = Input.is_action_pressed("store")
 	cmd.cursor = cursor
 	if sim.nav_dirty and nav != null:
-		nav.bake(sim, terrain.arrays)
+		nav.bake(sim, terrain.arrays, true)
 		sim.nav_dirty = false
 	sim.step(cmd, delta)
 	cmd.clear_pulses()
@@ -256,7 +258,7 @@ func _process(delta: float) -> void:
 		swing = k.swing_t / maxf(0.01, tables.wn("knight", "swing_seconds", 0.44))
 	var moving: bool = k.prev.distance_squared_to(k.pos) > 0.00001
 	knight_view.pose(kp, k.yaw, swing, moving, k.down_t, delta)
-	sprig_view.update(sim, alpha, k.selected_type)
+	sprig_view.update(sim, alpha, k.selected_type, delta, _elapsed)
 	world_view.update(sim, alpha, _elapsed)
 	fx.tick(delta)
 	# whistle ring and throw arc follow the cursor
@@ -318,3 +320,33 @@ func shot_pose(name: String) -> void:
 			sim.clock.time = sim.clock.day_seconds + 10.0
 		"whistle":
 			_shot_whistle = true
+		_:
+			if name.begins_with("region:"):
+				_shot_whistle = false
+				_shot_to_region(name.substr(7))
+
+
+## Shot seam: stand him on the Hold side of a territory with the squad around him.
+func _shot_to_region(id: String) -> void:
+	for r: Dictionary in sim.regions:
+		if r["id"] != id:
+			continue
+		var c: Vector3 = r["pos"]
+		var toward: Vector3 = (sim.hold.pos - c)
+		toward.y = 0.0
+		toward = toward.normalized()
+		var at: Vector3 = sim.ground(c + toward * 4.0)
+		sim.knight.pos = at
+		sim.knight.prev = at
+		sim.knight.yaw = atan2(-toward.x, -toward.z)
+		for s: Entities.Sprig in sim.sprigs:
+			if s.state == Entities.Sprig.State.FOLLOW:
+				s.pos = sim.ground(at + toward * 1.5 + Vector3(float(s.id % 5) * 0.4 - 0.8, 0.0, float(s.id % 3) * 0.4))
+				s.prev = s.pos
+				s.smooth_target = s.pos
+		sim.anchor = Vector3.INF
+		rig.focus = at
+		rig.yaw_target = atan2(toward.x, toward.z)
+		rig.yaw = rig.yaw_target
+		cursor = sim.ground(c)
+		return

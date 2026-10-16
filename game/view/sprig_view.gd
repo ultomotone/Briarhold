@@ -12,6 +12,9 @@ var _mm: Dictionary = {} # type_id -> MultiMeshInstance3D
 var _sprout_mm: Dictionary = {} # type_id -> MultiMeshInstance3D
 var _mesh: ArrayMesh
 var _shader: Shader
+var _yaw: Dictionary = {} # id -> displayed facing (eased toward the sim's)
+var _born: Dictionary = {} # id -> time first drawn (the pluck pop)
+var _primed: bool = false
 
 
 func build(p: PaletteData, t: ContentTables) -> void:
@@ -40,16 +43,18 @@ func _make_mm(type_id: String, sprout: bool) -> MultiMeshInstance3D:
 	mat.set_shader_parameter("tint", pal.col(tables.sprig(type_id).colour_key))
 	mat.set_shader_parameter("stalk", pal.col("scatter_stalk"))
 	mat.set_shader_parameter("buried", 1.0 if sprout else 0.0)
+	mat.set_shader_parameter("wings", 1.0 if tables.sprig(type_id).wings else 0.0)
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	add_child(mi)
 	return mi
 
 
-## Called per frame. alpha interpolates prev->pos.
-func update(w: SimWorld, alpha: float, selected: String) -> void:
+## Called per frame. alpha interpolates prev->pos; delta and now drive the easing and the pops.
+func update(w: SimWorld, alpha: float, selected: String, delta: float, now: float) -> void:
 	var counts: Dictionary = {}
 	var xf := Transform3D.IDENTITY
+	var turn: float = clampf(delta * 14.0, 0.0, 1.0)
 	for s: Entities.Sprig in w.sprigs:
 		if s.state == Entities.Sprig.State.DEAD:
 			continue
@@ -60,27 +65,63 @@ func update(w: SimWorld, alpha: float, selected: String) -> void:
 		if i >= MAX_PER_TYPE:
 			continue
 		counts[s.type_id] = i + 1
+		var t: Types.SprigType = tables.sprig(s.type_id)
 		var p: Vector3 = s.prev.lerp(s.pos, alpha)
-		var flying: bool = s.state == Entities.Sprig.State.THROWN
-		xf = Transform3D(Basis(Vector3.UP, s.yaw), p)
-		if flying:
-			xf = xf.rotated_local(Vector3.RIGHT, -0.6)
+		# facing eases instead of snapping
+		var yaw: float = s.yaw
+		if _yaw.has(s.id):
+			yaw = lerp_angle(float(_yaw[s.id]), s.yaw, turn)
+		_yaw[s.id] = yaw
+		# a plucked sprig rises out of the ground with a little overshoot
+		if not _born.has(s.id):
+			_born[s.id] = now if _primed else -10.0
+		var u: float = clampf((now - float(_born[s.id])) / 0.3, 0.0, 1.0)
+		var pop_y: float = -0.5 * (1.0 - u) * (1.0 - u)
+		var pop_s: float = 1.0 + 0.18 * sin(u * PI)
+		var sc: float = t.scale * pop_s
+		var b := Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc, sc))
+		xf = Transform3D(b, p + Vector3(0.0, pop_y, 0.0))
+		if s.state == Entities.Sprig.State.THROWN:
+			# one forward flip over the arc
+			var fu: float = clampf(s.fl_t / maxf(0.01, s.fl_total), 0.0, 1.0)
+			xf.basis = xf.basis * Basis(Vector3.RIGHT, -fu * TAU)
 		var mm: MultiMesh = mi.multimesh
 		mm.set_instance_transform(i, xf)
 		var col := Color(1.0, 1.0, 1.0, 1.0)
 		if s.status == "burning":
 			col = Color(2.2, 0.8, 0.3, 1.0)
 		elif s.status == "poisoned":
-			col = Color(0.8, 1.6, 0.6, 1.0)
+			col = Color(1.3, 0.8, 1.6, 1.0)
 		elif s.status == "frozen":
 			col = Color(0.7, 1.2, 1.8, 1.0)
+		elif s.status == "shocked":
+			col = Color(1.8, 1.7, 0.6, 1.0)
+		elif s.status == "drowning":
+			col = Color(0.6, 0.8, 1.5, 1.0)
 		elif s.state == Entities.Sprig.State.FOLLOW and s.type_id == selected:
-			col = Color(1.25, 1.25, 1.25, 1.0)
+			col = Color(1.2, 1.2, 1.2, 1.0)
 		elif s.state == Entities.Sprig.State.IDLE:
-			col = Color(0.85, 0.85, 0.85, 1.0)
+			col = Color(0.88, 0.88, 0.88, 1.0)
 		mm.set_instance_color(i, col)
-		var moving: float = 1.0 if (s.state == Entities.Sprig.State.FOLLOW or s.state == Entities.Sprig.State.CHARGE or s.state == Entities.Sprig.State.CARRY) else 0.0
-		mm.set_instance_custom_data(i, Color(s.phase, float(s.maturity), moving, 1.0 if s.latched else 0.0))
+		# walk cycle strength from how fast it actually moved this tick, not from its state
+		var d: Vector3 = s.pos - s.prev
+		d.y = 0.0
+		var spd: float = d.length() / SimWorld.FIXED_DT
+		var walk: float = 0.0 if (s.latched or s.state == Entities.Sprig.State.THROWN) else clampf(spd / maxf(0.5, t.speed), 0.0, 1.0)
+		mm.set_instance_custom_data(i, Color(s.phase, float(s.maturity), walk, 1.0 if s.latched else 0.0))
+	if not _primed:
+		_primed = true
+	# forget the gone, now and then
+	if _yaw.size() > w.sprigs.size() * 2 + 32:
+		var keep: Dictionary = {}
+		var keep_b: Dictionary = {}
+		for s: Entities.Sprig in w.sprigs:
+			if _yaw.has(s.id):
+				keep[s.id] = _yaw[s.id]
+			if _born.has(s.id):
+				keep_b[s.id] = _born[s.id]
+		_yaw = keep
+		_born = keep_b
 	for id: String in _mm.keys():
 		var mi: MultiMeshInstance3D = _mm[id]
 		mi.multimesh.visible_instance_count = int(counts.get(id, 0))
@@ -150,6 +191,9 @@ static func _make_mesh() -> ArrayMesh:
 		var c := Vector3(0.0, 1.05, 0.0)
 		_quad(st, c, c + dir * 0.09 + side * 0.07 + Vector3(0.0, 0.03, 0.0), c + dir * 0.19 + Vector3(0.0, 0.05, 0.0), c + dir * 0.09 - side * 0.07 + Vector3(0.0, 0.03, 0.0), 4)
 	_sphere(st, Vector3(0.0, 1.06, 0.0), 0.05, 7, 4, 5)
+	# wings (part 8): two thin panes on the back, shown only for flyers
+	for sx: float in [-1.0, 1.0]:
+		_quad(st, Vector3(0.04 * sx, 0.52, -0.1), Vector3(0.3 * sx, 0.6, -0.17), Vector3(0.27 * sx, 0.3, -0.18), Vector3(0.04 * sx, 0.32, -0.1), 8)
 	st.generate_normals()
 	return st.commit()
 
@@ -203,6 +247,7 @@ render_mode cull_disabled, depth_draw_opaque;
 uniform vec4 tint : source_color = vec4(1.0);
 uniform vec4 stalk : source_color = vec4(0.5, 0.45, 0.3, 1.0);
 uniform float buried = 0.0;
+uniform float wings = 0.0;
 varying float part;
 varying vec4 icol;
 void vertex() {
@@ -213,7 +258,10 @@ void vertex() {
 	vec3 crown = vec3(0.0, 1.0, 0.0);
 	// only the top that matches maturity exists; the others collapse into the stem tip
 	bool hide = (part == 2.0 && maturity > 0.5) || (part == 3.0 && (maturity < 0.5 || maturity > 1.5)) || ((part == 4.0 || part == 5.0) && maturity < 1.5);
-	if (buried > 0.5 && (part == 0.0 || part == 6.0 || part == 7.0)) {
+	if (buried > 0.5 && (part == 0.0 || part == 6.0 || part == 7.0 || part == 8.0)) {
+		hide = true;
+	}
+	if (part == 8.0 && wings < 0.5) {
 		hide = true;
 	}
 	if (hide) {
@@ -223,9 +271,24 @@ void vertex() {
 	float w = clamp((VERTEX.y - 0.75) * 2.0, 0.0, 1.0);
 	VERTEX.x += sin(TIME * 2.2 + phase * 6.283) * 0.05 * w;
 	VERTEX.z += sin(TIME * 1.7 + phase * 4.1) * 0.035 * w;
-	float step_ = sin(TIME * 9.0 + phase * 6.283);
-	VERTEX.y += moving * abs(step_) * 0.05;
-	VERTEX.z += moving * step_ * 0.02 * clamp(VERTEX.y, 0.0, 1.0);
+	float step_ = sin(TIME * 11.0 + phase * 6.283);
+	// limbs swing from hip and shoulder: legs (near the centre line) forward and back, arms against them
+	if (part == 7.0) {
+		float side = VERTEX.x < 0.0 ? -1.0 : 1.0;
+		if (abs(VERTEX.x) < 0.1) {
+			VERTEX.z += step_ * side * moving * (0.2 - VERTEX.y) * 1.8;
+			VERTEX.y += max(0.0, step_ * side) * moving * 0.03 * (0.2 - VERTEX.y) * 5.0;
+		} else {
+			VERTEX.z -= step_ * side * moving * (0.36 - VERTEX.y) * 1.6;
+		}
+	}
+	// wings beat fast whether walking or not
+	if (part == 8.0) {
+		float f = sin(TIME * 30.0 + phase * 6.283) * 0.5 + 0.5;
+		VERTEX.x *= mix(1.0, 0.35, f);
+		VERTEX.z -= abs(VERTEX.x) * 0.5 * f;
+	}
+	VERTEX.y += moving * abs(step_) * 0.04;
 	if (buried > 0.5) {
 		// a sprout is the stem and its top, out of the ground
 		VERTEX.y -= 0.72;
@@ -241,6 +304,7 @@ void fragment() {
 	else if (part == 4.0) { col = vec3(0.98, 0.97, 0.9); }
 	else if (part == 5.0) { col = vec3(1.0, 0.82, 0.25); }
 	else if (part == 6.0) { col = vec3(0.06, 0.07, 0.1); }
+	else if (part == 8.0) { col = mix(tint.rgb, vec3(1.0), 0.55); }
 	ALBEDO = col * COLOR.rgb;
 	ROUGHNESS = part == 6.0 ? 0.25 : 0.8;
 	SPECULAR = part == 6.0 ? 0.6 : 0.25;

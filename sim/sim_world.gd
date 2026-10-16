@@ -26,6 +26,14 @@ var jobs: Array[Entities.CarryJob] = []
 var obstacles: Array[Dictionary] = [] # {"pos": Vector3, "r": float, "h": float}
 var nav_blockers: Array[Dictionary] = [] # {"pos", "r"}: routed around by carriers, walkable by feet (pools)
 var posies: Array[Entities.Posy] = []
+## The outer territories: {"id", "name", "type", "pos", "radius", "line"}. Rolled from the seed.
+var regions: Array[Dictionary] = []
+## Ground set aside for the regions so the field's scatter stays out of them: {"pos", "r"}.
+var reserved: Array[Dictionary] = []
+## Tall marker stones, one per region, view-only: {"pos", "type"}.
+var landmarks: Array[Dictionary] = []
+## Region ids he has walked into. Saved.
+var discovered: PackedStringArray = []
 var plants: Array[Dictionary] = [] # view-only scatter {"pos", "s", "kind"}
 var hash: SpatialHash
 var next_id: int = 1
@@ -91,7 +99,21 @@ func step(cmd: Commands, dt: float) -> void:
 	HazardSystem.step(self, dt)
 	HoldSystem.step(self, dt)
 	FieldSystem.step(self, dt)
+	if tick % 15 == 0:
+		_discover()
 	_end_tick()
+
+
+## Walking into a region names it on the map, once.
+func _discover() -> void:
+	for r: Dictionary in regions:
+		var id: String = r["id"]
+		if discovered.has(id):
+			continue
+		var c: Vector3 = r["pos"]
+		if flat_dist(knight.pos, c) <= float(r["radius"]):
+			discovered.append(id)
+			events.push("region_found", {"id": id, "name": r["name"], "type": r["type"], "line": r["line"], "pos": c})
 
 
 func _begin_tick() -> void:

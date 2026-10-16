@@ -9,6 +9,16 @@ static func step(w: SimWorld, dt: float) -> void:
 		if e.state == Entities.Enemy.State.DEAD:
 			continue
 		var t: Types.EnemyType = w.enemy_type(e)
+		if e.state == Entities.Enemy.State.FROZEN:
+			# frozen solid: no moving, no biting, no shaking; sprigs on it keep hitting
+			e.timer -= dt
+			e.wind = 0.0
+			if e.timer <= 0.0:
+				e.state = Entities.Enemy.State.IDLE
+				e.freeze = 0.0
+				w.events.push("thawed", {"pos": e.pos, "type": e.type_id})
+			continue
+		e.freeze = maxf(0.0, e.freeze - w.content.wn("frost", "decay_per_sec", 0.05) * dt)
 		e.cooldown = maxf(0.0, e.cooldown - dt)
 		e.itch_t += dt
 		# shake off whoever is hanging on: enough damage AND enough time since the last shake,
@@ -213,11 +223,17 @@ static func _bite(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType) -> void:
 			return a.id < b.id
 		return da < db)
 	var eaten: int = 0
+	var poisoned: int = 0
 	for s: Entities.Sprig in victims:
 		if eaten >= t.bite_count:
 			break
+		if s.type_id == "thorn":
+			poisoned += 1
 		w.kill_sprig(s, "eaten by " + t.name)
 		eaten += 1
+	# a Thorn sprig poisons whatever eats it: the price of the meal, on the meal's own clock
+	for i: int in poisoned:
+		Damage.to_enemy(w, e, w.content.wn("thorn", "poison_damage", 150.0), "Thorn poison", e.pos + Vector3(0.0, t.height, 0.0))
 	var k: Entities.Knight = w.knight
 	if k.down_t < 0.0 and SimWorld.flat_dist(k.pos, e.pos) <= reach + 0.35:
 		var dk: Vector3 = k.pos - e.pos
@@ -225,6 +241,19 @@ static func _bite(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType) -> void:
 		if dk.length() < 0.05 or fwd.dot(dk.normalized()) > 0.1:
 			Damage.to_knight(w, t.damage_to_knight, t.name + " bite")
 	w.events.push("bite", {"pos": mouth, "type": e.type_id, "eaten": eaten})
+
+
+## Frost buildup. Full, the enemy is frozen solid for frozen_seconds.
+static func add_freeze(w: SimWorld, e: Entities.Enemy, amount: float) -> void:
+	if e.state == Entities.Enemy.State.DEAD or e.state == Entities.Enemy.State.FROZEN or e.state == Entities.Enemy.State.RETREAT:
+		return
+	e.freeze += amount
+	if e.freeze >= 1.0:
+		e.freeze = 0.0
+		e.state = Entities.Enemy.State.FROZEN
+		e.timer = w.content.wn("frost", "frozen_seconds", 6.0)
+		e.wind = 0.0
+		w.events.push("frozen", {"pos": e.pos, "type": e.type_id})
 
 
 static func _shake_off(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType) -> void:

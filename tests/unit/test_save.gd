@@ -43,10 +43,27 @@ func test_fixture_v1_loads_and_deltas_apply() -> void:
 	for o: Entities.WorldObject in w.objects:
 		assert_ne(o.seed_id, "pellet:0")
 		assert_ne(o.seed_id, "relic:button")
-		assert_ne(o.kind, "shrine")
+		if o.kind == "shrine":
+			assert_ne(o.shrine_type, "stone", "the rooted Stone shrine is not also in the field")
 	for e: Entities.Enemy in w.enemies:
 		assert_ne(e.seed_id, "grub:1")
 	assert_almost_eq(w.knight.hp, 88.0, 0.01)
+
+
+func test_v1_migrates_to_v2_with_nothing_discovered() -> void:
+	var m: Dictionary = Migrate.run(_fixture())
+	assert_eq(int(m["schemaVersion"]), 2)
+	assert_eq((m["discovered"] as Array).size(), 0)
+
+
+func test_fixture_v2_loads_discovered() -> void:
+	var v: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/save-v2.json"))
+	assert_true(v is Dictionary)
+	var doc: Dictionary = v
+	assert_eq(JSON.stringify(Migrate.run(doc)), JSON.stringify(Migrate.run(Migrate.run(doc))))
+	var w: SimWorld = Serialize.from_doc(tables, doc)
+	assert_true(w.discovered.has("mere"))
+	assert_eq(w.sprigs.size(), 4)
 
 
 func test_round_trip_is_stable() -> void:

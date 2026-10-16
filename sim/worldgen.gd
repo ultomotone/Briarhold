@@ -13,8 +13,12 @@ static func populate(w: SimWorld) -> void:
 		var ang: float = float(i) / 12.0 * TAU + r0.randf() * 0.3
 		var d: float = 1.5 + r0.randf() * 1.6
 		w.spawn_sprout("ember", ember.pos + Vector3(sin(ang), 0.0, cos(ang)) * d, Vector3.INF, 1 if i < 4 else 0)
+	# the outer territories claim their ground first, then the field's stones go around them
+	var region_centres: Array[Vector3] = _reserve_regions(w)
 	# stones: the field's furniture and its walls
 	_stones(w)
+	for i: int in region_centres.size():
+		_build_region(w, i, region_centres[i])
 	# the Stone shrine waits in the field with a few sprouts of its own
 	var stone_at: Vector3 = _open_spot(w, Rng.stream(ss + ":stone"), 22.0, 30.0)
 	w.spawn_shrine_object("stone", stone_at, "shrine:stone")
@@ -27,13 +31,7 @@ static func populate(w: SimWorld) -> void:
 	for i: int in 4:
 		var p: Vector3 = _open_spot(w, rw, 26.0, w.field.bound - 10.0)
 		var rad: float = 3.2 + rw.randf() * 2.2
-		var z := Entities.HazardZone.new()
-		z.id = w.new_id()
-		z.hazard_id = "water"
-		z.pos = w.ground(p)
-		z.radius = rad
-		w.hazards.append(z)
-		w.nav_blockers.append({"pos": z.pos, "r": rad + 0.4})
+		_zone(w, "water", p, rad)
 		w.spawn_object("pellet_10" if i % 2 == 0 else "relic_marble", p + Vector3(0.4, 0.0, 0.2), "pool:%d" % i, "ember")
 	# posies: pellet flowers that regrow on a clock
 	var rpo := Rng.stream(ss + ":posies")
@@ -101,7 +99,7 @@ static func populate(w: SimWorld) -> void:
 	# green scatter for the view only: leaves and stalks, never in the way
 	var rpl := Rng.stream(ss + ":plants")
 	for i: int in 700:
-		var p: Vector3 = _open_spot(w, rpl, 6.0, w.field.bound - 2.0)
+		var p: Vector3 = _open_spot(w, rpl, 6.0, w.field.bound - 2.0, false)
 		# thickets: denser where the slow noise says so
 		if w.field.noise2(p.x * 0.05 + 3.0, p.z * 0.05 - 9.0) < 0.42 and rpl.randf() < 0.6:
 			continue
@@ -138,6 +136,103 @@ static func _pocket(w: SimWorld, rgate: Rng, gate_ang: float, dist: float, gi: i
 		w.spawn_object("pellet_20", pocket_c + Vector3(-1.6, 0.0, -1.0), "pocket:%d:pellet" % gi, "stone")
 
 
+## The ring of territories: one per row in regions.json, evenly round the field from a seeded
+## start angle. Their ground is reserved before anything else is placed.
+static func _reserve_regions(w: SimWorld) -> Array[Vector3]:
+	var cfg: Dictionary = w.content.regions
+	var rows: Array = cfg.get("regions", [])
+	var dist: float = minf(float(cfg.get("ring_distance", 122.0)), w.field.bound - float(cfg.get("radius", 18.0)) - 4.0)
+	var rad: float = float(cfg.get("radius", 18.0))
+	var r := Rng.stream(w.seed_str() + ":regions")
+	var a0: float = r.randf() * TAU
+	var out: Array[Vector3] = []
+	for i: int in rows.size():
+		var row: Dictionary = rows[i]
+		var a: float = a0 + float(i) / float(rows.size()) * TAU
+		var c: Vector3 = w.ground(w.hold.pos + Vector3(sin(a), 0.0, cos(a)) * dist)
+		w.reserved.append({"pos": c, "r": rad + 2.0})
+		w.regions.append({"id": str(row["id"]), "name": str(row["name"]), "type": str(row["type"]), "pos": c, "radius": rad, "line": str(row.get("line", ""))})
+		out.append(c)
+	return out
+
+
+static func _zone(w: SimWorld, hazard_id: String, p: Vector3, radius: float) -> void:
+	if hazard_id == "water":
+		w.field.add_basin(p.x, p.z, radius) # the ground dips under the water
+	var z := Entities.HazardZone.new()
+	z.id = w.new_id()
+	z.hazard_id = hazard_id
+	z.pos = w.ground(p)
+	z.radius = radius
+	w.hazards.append(z)
+	if hazard_id == "water":
+		w.nav_blockers.append({"pos": z.pos, "r": radius + 0.4})
+
+
+## One territory: the type's shrine with sprouts at its foot on the Hold side, a landmark stone,
+## and the puzzle on the far side with its rewards.
+static func _build_region(w: SimWorld, i: int, c: Vector3) -> void:
+	var cfg: Dictionary = w.content.regions
+	var row: Dictionary = (cfg["regions"] as Array)[i]
+	var id: String = str(row["id"])
+	var type_id: String = str(row["type"])
+	var hz: String = str(row.get("hazard", ""))
+	var r := Rng.stream("%s:region:%s" % [w.seed_str(), id])
+	var toward: Vector3 = w.hold.pos - c
+	toward.y = 0.0
+	toward = toward.normalized()
+	var side := Vector3(toward.z, 0.0, -toward.x)
+	# shrine and sprouts
+	var shrine_at: Vector3 = c + toward * 7.5
+	w.spawn_shrine_object(type_id, shrine_at, "shrine:" + type_id)
+	var n_sprouts: int = int(cfg.get("sprouts", 4))
+	for k: int in n_sprouts:
+		var a: float = float(k) / float(n_sprouts) * TAU + r.randf() * 0.4
+		w.spawn_sprout(type_id, shrine_at + Vector3(sin(a), 0.0, cos(a)) * (1.7 + r.randf() * 0.9), Vector3.INF, 0)
+	w.landmarks.append({"pos": w.ground(c + toward * 11.0 + side * 3.5), "type": type_id})
+	# the puzzle
+	var pc: Vector3 = c - toward * 3.0
+	var rewards: Array[Vector3] = []
+	match str(row.get("layout", "open")):
+		"pools":
+			var spots: Array[Vector3] = [pc, pc + side * 6.8, pc - side * 6.2]
+			var radii: Array[float] = [4.2, 3.4, 3.0]
+			for k: int in 3:
+				_zone(w, hz, spots[k], radii[k])
+			rewards = spots
+		"ring":
+			for k: int in 9:
+				var a: float = float(k) / 9.0 * TAU
+				_zone(w, hz, pc + Vector3(sin(a), 0.0, cos(a)) * 4.6, 1.95)
+			rewards = [pc, pc + side * 1.2]
+		"cluster":
+			for k: int in 3:
+				var a: float = float(k) / 3.0 * TAU
+				_zone(w, hz, pc + Vector3(sin(a), 0.0, cos(a)) * 1.6, 2.8)
+			rewards = [pc, pc + side * 1.1, pc - side * 1.1]
+		"walls":
+			for k: int in 13:
+				var a: float = float(k) / 13.0 * TAU
+				w.obstacles.append({"pos": w.ground(pc + Vector3(sin(a), 0.0, cos(a)) * 5.4), "r": 1.45, "h": 2.6 + r.randf() * 0.9})
+			rewards = [pc, pc + side * 1.2]
+		_:
+			rewards = [pc, pc + side * 3.0]
+	# rewards: the relic first, then pellets of the region's type, then a heartroot if any
+	var ri: int = 0
+	w.spawn_object(str(row["relic"]), rewards[ri % rewards.size()], "region:%s:relic" % id)
+	ri += 1
+	for k: int in int(row.get("pellets", 1)):
+		var tid: String = "pellet_20" if str(row.get("layout", "")) == "open" else "pellet_10"
+		w.spawn_object(tid, rewards[ri % rewards.size()] + Vector3(0.6, 0.0, 0.4) * float(ri / rewards.size()), "region:%s:pellet:%d" % [id, k], type_id)
+		ri += 1
+	if bool(row.get("heartroot", false)):
+		w.spawn_object("heartroot", rewards[ri % rewards.size()] + Vector3(-0.6, 0.0, 0.5), "region:%s:heartroot" % id)
+	var g: String = str(row.get("guardian", ""))
+	if not g.is_empty():
+		var e: Entities.Enemy = w.spawn_enemy(g, pc + side * 8.0 - toward * 2.0, "region:%s:guardian" % id)
+		e.yaw = r.randf() * TAU
+
+
 static func _stones(w: SimWorld) -> void:
 	var r := Rng.stream(w.seed_str() + ":stones")
 	for i: int in 80:
@@ -146,12 +241,13 @@ static func _stones(w: SimWorld) -> void:
 		w.obstacles.append({"pos": w.ground(p), "r": rad, "h": 0.6 + r.randf() * 1.6})
 
 
-## A point in the annulus [rmin, rmax] around the Hold that is not inside a stone or a pool.
-static func open_spot(w: SimWorld, r: Rng, rmin: float, rmax: float) -> Vector3:
-	return _open_spot(w, r, rmin, rmax)
+## A point in the annulus [rmin, rmax] around the Hold that is not inside a stone, a pool, or
+## (unless avoid_reserved is off) a region's ground.
+static func open_spot(w: SimWorld, r: Rng, rmin: float, rmax: float, avoid_reserved: bool = true) -> Vector3:
+	return _open_spot(w, r, rmin, rmax, avoid_reserved)
 
 
-static func _open_spot(w: SimWorld, r: Rng, rmin: float, rmax: float) -> Vector3:
+static func _open_spot(w: SimWorld, r: Rng, rmin: float, rmax: float, avoid_reserved: bool = true) -> Vector3:
 	for attempt: int in 40:
 		var ang: float = r.randf() * TAU
 		var d: float = rmin + r.randf() * (rmax - rmin)
@@ -163,6 +259,12 @@ static func _open_spot(w: SimWorld, r: Rng, rmin: float, rmax: float) -> Vector3
 			if SimWorld.flat_dist(p, c) < float(ob["r"]) + 1.2:
 				clear = false
 				break
+		if clear and avoid_reserved:
+			for rs: Dictionary in w.reserved:
+				var c: Vector3 = rs["pos"]
+				if SimWorld.flat_dist(p, c) < float(rs["r"]):
+					clear = false
+					break
 		if clear:
 			for nb: Dictionary in w.nav_blockers:
 				var c: Vector3 = nb["pos"]

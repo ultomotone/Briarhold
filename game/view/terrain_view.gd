@@ -1,5 +1,5 @@
-## The ground drawn from the heightfield: non-indexed triangles with a face colour each, so it
-## reads faceted with no shader work. The same vertex arrays feed the navmesh bake.
+## The ground drawn from the heightfield: non-indexed triangles with a flat normal each, so it
+## reads faceted; the colour comes from the shader below (height and slope against the palette). The same vertex arrays feed the navmesh bake.
 class_name TerrainView
 extends MeshInstance3D
 
@@ -8,35 +8,41 @@ var arrays: Array = []
 
 func build(field: Heightfield, pal: PaletteData) -> void:
 	var size: float = field.size
-	var seg: int = int(size) # one-unit quads
+	var seg: int = mini(int(size), 256) # about one-metre quads, capped so a wider field costs the same
 	var half: float = size * 0.5
+	var step: float = size / float(seg)
+	# every height once: a grid vertex is shared by four quads
+	var hs := PackedFloat32Array()
+	hs.resize((seg + 1) * (seg + 1))
+	for i: int in seg + 1:
+		for j: int in seg + 1:
+			hs[i * (seg + 1) + j] = field.height_at(-half + float(i) * step, -half + float(j) * step)
 	var verts := PackedVector3Array()
 	var norms := PackedVector3Array()
-	var cols := PackedColorArray()
-	var step: float = size / float(seg)
+	verts.resize(seg * seg * 6)
+	norms.resize(seg * seg * 6)
+	var k: int = 0
 	for i: int in seg:
 		for j: int in seg:
 			var x0: float = -half + float(i) * step
 			var z0: float = -half + float(j) * step
 			var x1: float = x0 + step
 			var z1: float = z0 + step
-			var p00 := Vector3(x0, field.height_at(x0, z0), z0)
-			var p10 := Vector3(x1, field.height_at(x1, z0), z0)
-			var p01 := Vector3(x0, field.height_at(x0, z1), z1)
-			var p11 := Vector3(x1, field.height_at(x1, z1), z1)
+			var p00 := Vector3(x0, hs[i * (seg + 1) + j], z0)
+			var p10 := Vector3(x1, hs[(i + 1) * (seg + 1) + j], z0)
+			var p01 := Vector3(x0, hs[i * (seg + 1) + j + 1], z1)
+			var p11 := Vector3(x1, hs[(i + 1) * (seg + 1) + j + 1], z1)
 			# alternate the diagonal so the facets do not all lean one way
-			var flip: bool = ((i + j) % 2) == 0
-			if flip:
-				_tri(verts, norms, cols, field, pal, p00, p01, p11)
-				_tri(verts, norms, cols, field, pal, p00, p11, p10)
+			if ((i + j) % 2) == 0:
+				k = _tri(verts, norms, k, p00, p01, p11)
+				k = _tri(verts, norms, k, p00, p11, p10)
 			else:
-				_tri(verts, norms, cols, field, pal, p00, p01, p10)
-				_tri(verts, norms, cols, field, pal, p10, p01, p11)
+				k = _tri(verts, norms, k, p00, p01, p10)
+				k = _tri(verts, norms, k, p10, p01, p11)
 	arrays = []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = verts
 	arrays[Mesh.ARRAY_NORMAL] = norms
-	arrays[Mesh.ARRAY_COLOR] = cols
 	var m := ArrayMesh.new()
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	# Colour comes from a shader over world height and flat normal, with the palette as
@@ -59,25 +65,18 @@ func build(field: Heightfield, pal: PaletteData) -> void:
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
 
-func _tri(verts: PackedVector3Array, norms: PackedVector3Array, cols: PackedColorArray, field: Heightfield, pal: PaletteData, a: Vector3, b: Vector3, c: Vector3) -> void:
+## Godot front faces wind clockwise: emit a, c, b so the face points up. Returns the next index.
+func _tri(verts: PackedVector3Array, norms: PackedVector3Array, k: int, a: Vector3, b: Vector3, c: Vector3) -> int:
 	var n: Vector3 = (b - a).cross(c - a).normalized()
 	if n.y < 0.0:
 		n = -n
-	var cx: float = (a.x + b.x + c.x) / 3.0
-	var cz: float = (a.z + b.z + c.z) / 3.0
-	var h: float = (a.y + b.y + c.y) / 3.0
-	var slope: float = 1.0 - n.y
-	var v: float = field.noise2(cx * 0.35 + 11.0, cz * 0.35 - 7.0)
-	# Forward+ reads vertex colours as linear whatever the material flag says; convert here so
-	# the palette's sRGB moss arrives as moss and not as pale olive
-	var col: Color = pal.terrain(h, slope * 2.2, v).srgb_to_linear()
-	# Godot front faces wind clockwise: emit a, c, b so the face points up
-	verts.append(a)
-	verts.append(c)
-	verts.append(b)
-	for i: int in 3:
-		norms.append(n)
-		cols.append(col)
+	verts[k] = a
+	verts[k + 1] = c
+	verts[k + 2] = b
+	norms[k] = n
+	norms[k + 1] = n
+	norms[k + 2] = n
+	return k + 3
 
 
 const SHADER: String = """

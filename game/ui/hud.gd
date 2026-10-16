@@ -21,6 +21,7 @@ var _banner: Label
 var _banner_t: float = 0.0
 var _hint: Label
 var _cursor_hint: Label
+var _map: Minimap
 
 
 func build(p: PaletteData, t: ContentTables) -> void:
@@ -78,6 +79,17 @@ func build(p: PaletteData, t: ContentTables) -> void:
 	trv.add_child(_relics)
 	_lost = UiKit.label(pal, "", 12, 0.7)
 	trv.add_child(_lost)
+	# the map, under the Hold panel
+	_map = Minimap.new()
+	_map.setup(pal, tables)
+	_map.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_map.anchor_left = 1.0
+	_map.anchor_right = 1.0
+	_map.offset_left = -Minimap.SIZE - 18.0
+	_map.offset_right = -18.0
+	_map.offset_top = 214.0
+	_map.offset_bottom = 214.0 + Minimap.SIZE
+	root.add_child(_map)
 	# bottom-centre chips
 	_chips = HBoxContainer.new()
 	_chips.add_theme_constant_override("separation", 8)
@@ -156,6 +168,8 @@ func handle(ev: Dictionary) -> void:
 			_show_banner("Dawn", 3.0)
 		"knight_down":
 			_show_banner("Down", 2.2)
+		"region_found":
+			_show_banner("Found: " + str(ev["name"]), 3.5)
 
 
 func _show_banner(text: String, seconds: float) -> void:
@@ -176,6 +190,7 @@ func update(w: SimWorld, notes: Array[String], cursor: Vector3) -> void:
 	_relics.text = "Relics %d   Value %d" % [w.hold.relics_banked, w.hold.value]
 	_lost.text = "Lost tonight %d   Lost ever %d" % [w.lost_tonight, w.lost_total]
 	_sync_chips(w)
+	_map.show_world(w)
 	_log.text = "\n".join(notes)
 	if _banner.visible:
 		_banner_t -= get_process_delta_time()

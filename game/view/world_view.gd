@@ -13,6 +13,9 @@ var _shrines: Dictionary = {} # id -> Node3D
 var _vents: Array[Node3D] = []
 var _stones: MultiMeshInstance3D
 var _plants: MultiMeshInstance3D
+var _eyaw: Dictionary = {} # enemy id -> displayed facing
+var _last_t: float = 0.0
+var _flicker: Array[Node3D] = [] # shock fences and gas vents that pulse
 var _hold_ring: MeshInstance3D
 var _safe_ring: MeshInstance3D
 
@@ -28,6 +31,15 @@ func build(p: PaletteData, t: ContentTables, w: SimWorld) -> void:
 			_vents.append(_build_vent(z))
 		elif z.hazard_id == "water":
 			_build_pool(z)
+		elif z.hazard_id == "shock":
+			_flicker.append(_build_shock(z))
+		elif z.hazard_id == "poison":
+			_flicker.append(_build_gas(z))
+		elif z.hazard_id == "freeze":
+			_build_frost(z)
+	for lm: Dictionary in w.landmarks:
+		_build_landmark(lm)
+	_build_wires(w)
 	for po: Entities.Posy in w.posies:
 		_build_posy(po)
 
@@ -165,7 +177,7 @@ func _build_pool(z: Entities.HazardZone) -> void:
 	n.position = z.pos
 	add_child(n)
 	var water := _mesh(_cyl(z.radius, 0.12), _mat(pal.col("pool_water"), 0.15, 0.1, pal.col("pool_water"), 0.15))
-	water.position.y = 0.02
+	water.position.y = Heightfield.BASIN_DEPTH - 0.1
 	var wm: StandardMaterial3D = water.material_override
 	wm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	wm.albedo_color.a = 0.82
@@ -177,8 +189,125 @@ func _build_pool(z: Entities.HazardZone) -> void:
 	rim.rings = 28
 	rim.ring_segments = 5
 	var bank := _mesh(rim, _mat(pal.col("pool_rim"), 1.0, 0.0))
-	bank.position.y = 0.06
+	bank.position.y = Heightfield.BASIN_DEPTH
 	n.add_child(bank)
+
+
+func _build_shock(z: Entities.HazardZone) -> Node3D:
+	var n := Node3D.new()
+	n.position = z.pos
+	add_child(n)
+	var c: Color = pal.col("sprig_spark")
+	var post := _mesh(_cyl(0.09, 1.6), _mat(pal.col("scatter_stalk").darkened(0.4), 0.8, 0.3))
+	post.position.y = 0.8
+	n.add_child(post)
+	var cap_ := _mesh(_ico(0.16), _mat(c, 0.4, 0.2, c, 2.5))
+	cap_.position.y = 1.65
+	n.add_child(cap_)
+	var disc := _mesh(_cyl(z.radius * 0.8, 0.02), _mat(c, 0.5, 0.0, c, 0.5))
+	disc.name = "glow"
+	var dm: StandardMaterial3D = disc.material_override
+	dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	dm.albedo_color.a = 0.12
+	disc.position.y = 0.04
+	disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	n.add_child(disc)
+	return n
+
+
+## Live wires strung between neighbouring fence posts, two strands each.
+func _build_wires(w: SimWorld) -> void:
+	var posts: Array[Vector3] = []
+	for z: Entities.HazardZone in w.hazards:
+		if z.hazard_id == "shock":
+			posts.append(z.pos)
+	var c: Color = pal.col("sprig_spark")
+	var mat := _mat(c, 0.4, 0.3, c, 1.6)
+	for i: int in posts.size():
+		for j: int in range(i + 1, posts.size()):
+			var a: Vector3 = posts[i]
+			var b: Vector3 = posts[j]
+			var d: float = SimWorld.flat_dist(a, b)
+			if d > 4.2:
+				continue
+			for hgt: float in [0.7, 1.3]:
+				var wire := _mesh(_box(0.035, 0.035, d), mat)
+				wire.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				# oriented by basis, not look_at: this runs before the view is in the tree
+				var dir: Vector3 = (b - a).normalized()
+				wire.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), (a + b) * 0.5 + Vector3(0.0, hgt, 0.0))
+				add_child(wire)
+
+
+func _build_gas(z: Entities.HazardZone) -> Node3D:
+	var n := Node3D.new()
+	n.position = z.pos
+	add_child(n)
+	var c: Color = pal.col("hazard_poison")
+	var mound := _mesh(_ico(0.7), _mat(pal.col("terrain_loam").darkened(0.3), 1.0, 0.0))
+	mound.scale = Vector3(1.0, 0.45, 1.0)
+	n.add_child(mound)
+	var cloud := _mesh(_ico(z.radius * 0.85), _mat(c, 1.0, 0.0, c, 0.4))
+	cloud.name = "glow"
+	var cm: StandardMaterial3D = cloud.material_override
+	cm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	cm.albedo_color.a = 0.28
+	cloud.scale = Vector3(1.0, 0.35, 1.0)
+	cloud.position.y = 0.5
+	cloud.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	n.add_child(cloud)
+	return n
+
+
+func _build_frost(z: Entities.HazardZone) -> void:
+	var n := Node3D.new()
+	n.position = z.pos
+	add_child(n)
+	var c: Color = pal.col("sprig_frost")
+	var sheet := _mesh(_cyl(z.radius, 0.05), _mat(c.lightened(0.3), 0.15, 0.1, c, 0.25))
+	sheet.position.y = 0.03
+	sheet.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	n.add_child(sheet)
+	for k: int in 5:
+		var a: float = float(k) / 5.0 * TAU + float(z.id)
+		var spike := CylinderMesh.new()
+		spike.top_radius = 0.0
+		spike.bottom_radius = 0.14
+		spike.height = 0.7 + 0.3 * float(k % 2)
+		spike.radial_segments = 5
+		var m := _mesh(spike, _mat(c, 0.2, 0.1, c, 0.4))
+		m.position = Vector3(sin(a) * z.radius * 0.6, 0.35, cos(a) * z.radius * 0.6)
+		m.rotation = Vector3(cos(a) * 0.3, 0.0, -sin(a) * 0.3)
+		n.add_child(m)
+
+
+## A tall marker stone with a glowing cap in the territory's colour: seen from far off.
+func _build_landmark(lm: Dictionary) -> void:
+	var n := Node3D.new()
+	n.position = lm["pos"]
+	add_child(n)
+	var tint: Color = pal.col(tables.sprig(str(lm["type"])).colour_key)
+	var stone := _mesh(_cyl(0.55, 5.0), _mat(pal.col("landmark_stone"), 1.0, 0.0))
+	stone.position.y = 2.5
+	n.add_child(stone)
+	var band := TorusMesh.new()
+	band.inner_radius = 0.55
+	band.outer_radius = 0.72
+	band.rings = 16
+	band.ring_segments = 5
+	var ring := _mesh(band, _mat(tint, 0.6, 0.0, tint, 1.2))
+	ring.position.y = 3.6
+	n.add_child(ring)
+	var top := _mesh(_ico(0.6), _mat(tint, 0.5, 0.0, tint, 2.2))
+	top.position.y = 5.4
+	n.add_child(top)
+	var light := OmniLight3D.new()
+	light.light_color = tint
+	light.light_energy = 2.5
+	light.omni_range = 9.0
+	light.position.y = 5.0
+	light.shadow_enabled = false
+	n.add_child(light)
 
 
 func _build_posy(po: Entities.Posy) -> void:
@@ -200,9 +329,17 @@ func _build_posy(po: Entities.Posy) -> void:
 # ---- per-frame ----------------------------------------------------------------------------------
 
 func update(w: SimWorld, alpha: float, t: float) -> void:
+	var dt: float = clampf(t - _last_t, 0.0, 0.1)
+	_last_t = t
+	for f: Node3D in _flicker:
+		var g: MeshInstance3D = f.get_node_or_null("glow")
+		if g != null:
+			var m: StandardMaterial3D = g.material_override
+			m.albedo_color.a = 0.08 + 0.14 * absf(sin(t * 9.0 + f.position.x)) * (0.6 + 0.4 * sin(t * 23.0 + f.position.z))
+			g.scale.y = 1.0 + 0.15 * sin(t * 2.0 + f.position.x)
 	_sync_shrines(w)
 	_sync_objects(w, alpha)
-	_sync_enemies(w, alpha, t)
+	_sync_enemies(w, alpha, t, dt)
 	_sync_gates(w)
 	for i: int in w.hazards.size():
 		if i >= _vents.size():
@@ -278,7 +415,12 @@ func _sync_objects(w: SimWorld, alpha: float) -> void:
 			n.scale = Vector3.ONE * maxf(0.05, 1.0 - u * u)
 			continue
 		n.scale = Vector3.ONE
-		n.position = p + Vector3(0.0, 0.18 if o.carriers.size() > 0 else 0.0, 0.0)
+		var lift: float = 0.0
+		if o.carriers.size() > 0:
+			lift = 0.18
+			if o.prev.distance_squared_to(o.pos) > 0.0000001:
+				lift += absf(sin(_last_t * 10.0 + float(o.id))) * 0.05 # bobbing on many small shoulders
+		n.position = p + Vector3(0.0, lift, 0.0)
 		n.rotation.y = o.yaw
 	for id: Variant in _objects.keys():
 		if not seen.has(id):
@@ -345,7 +487,7 @@ func _make_object(o: Entities.WorldObject) -> Node3D:
 	return n
 
 
-func _sync_enemies(w: SimWorld, alpha: float, t: float) -> void:
+func _sync_enemies(w: SimWorld, alpha: float, t: float, dt: float) -> void:
 	var seen: Dictionary = {}
 	for e: Entities.Enemy in w.enemies:
 		if e.state == Entities.Enemy.State.DEAD:
@@ -357,8 +499,15 @@ func _sync_enemies(w: SimWorld, alpha: float, t: float) -> void:
 			_enemies[e.id] = n
 		var p: Vector3 = e.prev.lerp(e.pos, alpha)
 		n.position = p
-		n.rotation.y = e.yaw
+		var ey: float = e.yaw
+		if _eyaw.has(e.id):
+			ey = lerp_angle(float(_eyaw[e.id]), e.yaw, clampf(dt * 10.0, 0.0, 1.0))
+		_eyaw[e.id] = ey
+		n.rotation.y = ey
 		var body: Node3D = n.get_node("body")
+		var ice: Node3D = n.get_node_or_null("ice")
+		if ice != null:
+			ice.visible = e.state == Entities.Enemy.State.FROZEN
 		var et: Types.EnemyType = w.enemy_type(e)
 		# the wind-up is on the body: it rears and pales, then snaps forward
 		if e.state == Entities.Enemy.State.TELEGRAPH:
@@ -374,6 +523,10 @@ func _sync_enemies(w: SimWorld, alpha: float, t: float) -> void:
 			body.rotation.z = sin(t * 40.0) * 0.25
 			body.position.y = absf(sin(t * 30.0)) * 0.12
 			body.scale = Vector3.ONE
+		elif e.state == Entities.Enemy.State.FROZEN:
+			body.rotation.z = 0.0
+			body.position.y = 0.0
+			body.scale = Vector3.ONE
 		elif e.state == Entities.Enemy.State.SLEEP:
 			body.rotation.x = 0.0
 			body.rotation.z = 0.0
@@ -381,8 +534,10 @@ func _sync_enemies(w: SimWorld, alpha: float, t: float) -> void:
 			body.scale = Vector3(1.0, 0.92 + sin(t * 1.3 + float(e.id)) * 0.03, 1.0)
 		else:
 			body.rotation.x = 0.0
-			body.rotation.z = 0.0
-			body.position.y = absf(sin(t * 6.0 + float(e.id))) * 0.05 if e.state == Entities.Enemy.State.CHASE else 0.0
+			var mv: float = Vector2(e.pos.x - e.prev.x, e.pos.z - e.prev.z).length() / SimWorld.FIXED_DT
+			var gait: float = clampf(mv / maxf(0.5, et.speed), 0.0, 1.0)
+			body.rotation.z = sin(t * 12.0 + float(e.id)) * 0.08 * gait
+			body.position.y = absf(sin(t * 12.0 + float(e.id))) * 0.06 * gait
 			body.scale = Vector3.ONE
 		var plate: MeshInstance3D = n.get_node_or_null("body/plate")
 		if plate != null:
@@ -471,6 +626,17 @@ func _make_enemy(e: Entities.Enemy) -> Node3D:
 	bar.position.y = et.height + 0.55
 	bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	n.add_child(bar)
+	# frozen solid: a pale shell, shown only while frozen
+	var ice_c: Color = pal.col("sprig_frost")
+	var ice := _mesh(_ico(et.radius * 1.3), _mat(ice_c, 0.1, 0.2, ice_c, 0.6))
+	ice.name = "ice"
+	var im: StandardMaterial3D = ice.material_override
+	im.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	im.albedo_color.a = 0.45
+	ice.scale = Vector3(1.0, 0.85, 1.25)
+	ice.position.y = et.height * 0.55
+	ice.visible = false
+	n.add_child(ice)
 	return n
 
 

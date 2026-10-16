@@ -10,6 +10,10 @@ var amplitude: float = 5.5
 var frequency: float = 0.028
 var hold_radius: float = 9.0
 var seed_n: int = 1
+## Pool basins: (x, z, radius, level). Flat bottom inside the radius, a bank blending back to the
+## natural ground over 0.7 radius. Part of the field's shape, so the save regenerates them.
+var basins: Array[Vector4] = []
+const BASIN_DEPTH: float = 0.35
 
 
 func _init(seed_value: int = 1, world: Dictionary = {}) -> void:
@@ -61,7 +65,28 @@ func height_at(x: float, z: float) -> float:
 	var r: float = sqrt(x * x + z * z)
 	var t: float = clampf((r - hold_radius) / hold_radius, 0.0, 1.0)
 	t = t * t * (3.0 - 2.0 * t)
-	return h * t
+	h *= t
+	for b: Vector4 in basins:
+		var dx: float = x - b.x
+		var dz: float = z - b.y
+		var reach: float = b.z * 1.7
+		if absf(dx) > reach or absf(dz) > reach:
+			continue
+		var d: float = sqrt(dx * dx + dz * dz)
+		if d <= b.z:
+			return b.w - BASIN_DEPTH
+		if d < reach:
+			var u: float = (d - b.z) / (reach - b.z)
+			u = u * u * (3.0 - 2.0 * u)
+			h = lerpf(b.w, h, u)
+	return h
+
+
+## Sink a pool into the ground here: level is the natural height at the centre.
+func add_basin(x: float, z: float, radius: float) -> float:
+	var level: float = height_at(x, z)
+	basins.append(Vector4(x, z, radius, level))
+	return level
 
 
 ## 0..1 steepness.
