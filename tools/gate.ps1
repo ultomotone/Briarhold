@@ -81,6 +81,19 @@ if ($Export) {
   $exe = Get-Item "build\Briarhold.exe" -ErrorAction SilentlyContinue
   if (-not $exe -or $exe.Length -lt 20MB -or $r.errs -gt 0) { Write-Host "GATE 1 export failed"; exit 1 }
   Write-Host ("export: {0} MB" -f [math]::Round($exe.Length / 1MB))
+  # Linux, when its template is installed for this engine version (it is a separate download)
+  # "4.8.beta1.official.x" -> templates in 4.8.beta1; "4.7.2.stable.official.x" -> 4.7.2.stable
+  $parts = ((& $godot --version) | Select-Object -Last 1).Trim() -split "\."
+  $tname = if ($parts[2] -match '^\d+$') { $parts[0..3] -join "." } else { $parts[0..2] -join "." }
+  if (Test-Path "$env:APPDATA\Godot\export_templates\$tname\linux_release.x86_64") {
+    New-Item -ItemType Directory -Force -Path "$repo\build\linux" | Out-Null
+    $r = Run "export-linux" @("--headless","--path",".","--export-release","`"Linux`"","build/linux/Briarhold.x86_64") "logs\export-linux.log"
+    $bin = Get-Item "build\linux\Briarhold.x86_64" -ErrorAction SilentlyContinue
+    if (-not $bin -or $bin.Length -lt 20MB -or $r.errs -gt 0) { Write-Host "GATE 1 linux export failed"; exit 1 }
+    Write-Host ("export-linux: {0} MB" -f [math]::Round($bin.Length / 1MB))
+  } else {
+    Write-Host "export-linux: skipped (no linux_release.x86_64 template for this Godot)"
+  }
 }
 
 Write-Host "GATE 0 green"

@@ -1,0 +1,32 @@
+BRIARHOLD
+
+Windows
+  1. Unzip Briarhold-windows.zip anywhere.
+  2. Double-click Briarhold.exe.
+     Windows may say "Windows protected your PC" because the game isn't signed.
+     Click "More info", then "Run anyway".
+
+Linux (64-bit, needs a graphics driver with Vulkan)
+  1. Unpack:            tar -xzf Briarhold-linux.tar.gz
+  2. Run:               ./Briarhold.x86_64
+     If it says permission denied, first run:  chmod +x Briarhold.x86_64
+
+On the title screen pick New Hold.
+
+Controls
+  WASD          move the gnome
+  Right-click   walk to a spot
+  Left-click    sword
+  F             pluck sprouts; at a shrine, take sprigs out
+  G             at a shrine, send sprigs in
+  Space         throw (hold to keep throwing)
+  R             whistle them back
+  X             dismiss    C  charge    Shift  swarm
+  Q / E         pick sprig type
+  Mouse wheel   zoom
+  Middle mouse  hold and drag to turn the camera
+  Z / V         turn the camera
+  Esc           pause
+
+Get home to the ring before night. Things come out after dark.
+The game saves on its own, in your user folder.

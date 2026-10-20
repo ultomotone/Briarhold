@@ -38,7 +38,10 @@ has a home here (see `docs/design/CODEX.md` §2); Nintendo's names, art, and cod
   decides anything the sim could decide.
 - `content/*.json` is every number and every row. Tuning is a JSON edit, not a code edit.
 - The gate, from the repo root: `pwsh tools\gate.ps1` (import → typecheck → tests → screenshots).
-  `-NoShot` skips the windowed capture; `-Export` also builds `build\Briarhold.exe`.
+  `-NoShot` skips the windowed capture; `-Export` also builds `build\Briarhold.exe` (and
+  `build\linux\Briarhold.x86_64` when the Linux template is installed). `pwsh tools\package.ps1`
+  then makes the shareable `Briarhold-windows.zip` / `Briarhold-linux.tar.gz`; `-Release vX`
+  also publishes them to a GitHub Release, which is the owner's call, never a scheduled run's.
 
 ## Rules most likely to be broken
 
