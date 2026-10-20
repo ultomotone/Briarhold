@@ -121,14 +121,14 @@ func build(p: PaletteData, t: ContentTables) -> void:
 	_log.add_theme_constant_override("shadow_offset_y", 1)
 	root.add_child(_log)
 	# bottom-right controls
-	_hint = UiKit.label(pal, "WASD move · right-click walk · left-click sword\nSpace throw · R whistle · X dismiss · C charge · Shift swarm\nQ / E type · F pluck · at a shrine: F takes out, G sends in\nZ / V or hold middle mouse: turn camera · wheel zoom · Esc pause", 12, 0.6)
+	_hint = UiKit.label(pal, "WASD move · right-click walk · left-click sword\nSpace throw · R whistle · X dismiss · C charge · Shift swarm\nQ / E type · F pluck · at a shrine: F takes out, G sends in\nZ / V or hold middle mouse: turn camera · wheel zoom · Esc pause\nT at a camp's beacon: move the Hold there", 12, 0.6)
 	_hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	_hint.anchor_left = 1.0
 	_hint.anchor_top = 1.0
 	_hint.anchor_right = 1.0
 	_hint.anchor_bottom = 1.0
 	_hint.offset_left = -470.0
-	_hint.offset_top = -100.0
+	_hint.offset_top = -120.0
 	_hint.offset_right = -20.0
 	_hint.offset_bottom = -20.0
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -151,6 +151,116 @@ func build(p: PaletteData, t: ContentTables) -> void:
 	_banner.add_theme_constant_override("shadow_offset_y", 2)
 	_banner.visible = false
 	root.add_child(_banner)
+	# a boss in the fight: its name and its health, top centre
+	_boss_name = UiKit.label(pal, "", 18, 1.0, true)
+	_boss_name.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_boss_name.anchor_left = 0.5
+	_boss_name.anchor_right = 0.5
+	_boss_name.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_boss_name.offset_top = 28.0
+	_boss_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boss_name.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.9))
+	_boss_name.add_theme_constant_override("shadow_offset_x", 2)
+	_boss_name.add_theme_constant_override("shadow_offset_y", 2)
+	_boss_name.visible = false
+	root.add_child(_boss_name)
+	_boss_bar = ProgressBar.new()
+	_boss_bar.show_percentage = false
+	_boss_bar.min_value = 0.0
+	_boss_bar.max_value = 1.0
+	_boss_bar.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_boss_bar.anchor_left = 0.5
+	_boss_bar.anchor_right = 0.5
+	_boss_bar.offset_left = -260.0
+	_boss_bar.offset_right = 260.0
+	_boss_bar.offset_top = 56.0
+	_boss_bar.offset_bottom = 68.0
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color(0.05, 0.05, 0.06, 0.75)
+	bg.set_corner_radius_all(5)
+	var fg := StyleBoxFlat.new()
+	fg.bg_color = pal.col("hud_warn")
+	fg.set_corner_radius_all(5)
+	_boss_bar.add_theme_stylebox_override("background", bg)
+	_boss_bar.add_theme_stylebox_override("fill", fg)
+	_boss_bar.visible = false
+	root.add_child(_boss_bar)
+	# at a campsite beacon: how to move the Hold here
+	_prompt = UiKit.label(pal, "", 16, 1.0, true)
+	_prompt.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_prompt.anchor_left = 0.5
+	_prompt.anchor_right = 0.5
+	_prompt.anchor_top = 1.0
+	_prompt.anchor_bottom = 1.0
+	_prompt.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_prompt.offset_top = -120.0
+	_prompt.offset_bottom = -96.0
+	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_prompt.add_theme_color_override("font_color", pal.col("camp_fire"))
+	_prompt.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.9))
+	_prompt.add_theme_constant_override("shadow_offset_x", 2)
+	_prompt.add_theme_constant_override("shadow_offset_y", 2)
+	_prompt.visible = false
+	root.add_child(_prompt)
+
+
+var _boss_name: Label
+var _boss_bar: ProgressBar
+var _prompt: Label
+var _climate_band: String = ""
+
+
+## The boss fighting nearest him, if any: awake, alive, within 40 m.
+func _boss_near(w: SimWorld) -> Entities.Enemy:
+	var best: Entities.Enemy = null
+	var best_d: float = 40.0
+	for e: Entities.Enemy in w.enemies:
+		if e.state == Entities.Enemy.State.DEAD or e.state == Entities.Enemy.State.SLEEP:
+			continue
+		var et: Types.EnemyType = w.enemy_type(e)
+		if et == null or not et.boss:
+			continue
+		var d: float = SimWorld.flat_dist(e.pos, w.knight.pos)
+		if d < best_d:
+			best_d = d
+			best = e
+	return best
+
+
+func _sync_extras(w: SimWorld) -> void:
+	var boss: Entities.Enemy = _boss_near(w)
+	_boss_name.visible = boss != null
+	_boss_bar.visible = boss != null
+	if boss != null:
+		_boss_name.text = w.enemy_type(boss).name.to_upper()
+		_boss_bar.value = boss.hp / maxf(1.0, boss.max_hp)
+	var cp: Dictionary = CampSystem.camp_near(w, w.knight.pos)
+	if not cp.is_empty() and str(cp["id"]) != w.camp_id:
+		_prompt.visible = true
+		var dots: String = ""
+		if w.camp_t > 0.0:
+			dots = "  " + "■".repeat(int(w.camp_t / CampSystem.HOLD_SECONDS * 5.0) + 1)
+		_prompt.text = "Hold T: move the Hold to %s%s" % [str(cp["name"]), dots]
+	elif not cp.is_empty():
+		_prompt.visible = true
+		_prompt.text = "The Hold is here"
+	else:
+		_prompt.visible = false
+	# crossing into another climate says so, once per crossing
+	var cl: Vector3 = w.field.climate(w.knight.pos.x, w.knight.pos.z)
+	var band: String = _climate_band
+	if cl.x > 0.6:
+		band = "Into the snow"
+	elif cl.y > 0.6:
+		band = "Into the sand"
+	elif cl.z > 0.6:
+		band = "Into the jungle"
+	elif cl.x + cl.y + cl.z < 0.15:
+		band = "Green country"
+	if band != _climate_band:
+		if not _climate_band.is_empty():
+			_show_banner(band, 3.0)
+		_climate_band = band
 
 
 func reset() -> void:
@@ -174,6 +284,12 @@ func handle(ev: Dictionary) -> void:
 			_show_banner("Down", 2.2)
 		"region_found":
 			_show_banner("Found: " + str(ev["name"]), 3.5)
+		"camp_found":
+			_show_banner("Found: " + str(ev["name"]), 3.0)
+		"arena_found":
+			_show_banner(str(ev["name"]) + ": " + str(ev["boss"]), 4.0)
+		"camp_moved":
+			_show_banner("The Hold moves to " + str(ev["name"]), 3.5)
 
 
 func _show_banner(text: String, seconds: float) -> void:
@@ -194,6 +310,7 @@ func update(w: SimWorld, notes: Array[String], cursor: Vector3) -> void:
 	_relics.text = "Relics %d   Value %d" % [w.hold.relics_banked, w.hold.value]
 	_lost.text = "Lost tonight %d   Lost ever %d" % [w.lost_tonight, w.lost_total]
 	_sync_chips(w)
+	_sync_extras(w)
 	_map.show_world(w)
 	_log.text = "\n".join(notes)
 	if _banner.visible:

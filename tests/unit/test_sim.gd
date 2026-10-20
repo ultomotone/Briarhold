@@ -31,15 +31,25 @@ func test_worldgen_is_deterministic() -> void:
 	for i: int in a.objects.size():
 		assert_eq(a.objects[i].pos, b.objects[i].pos)
 		assert_eq(a.objects[i].seed_id, b.objects[i].seed_id)
-	assert_eq(a.enemies.size(), 7 + 4 + 2 + 17) # field grubs, beetles, two region guardians, the beasts
-	assert_eq(a.gates.size(), 2)
-	assert_eq(a.hazards.size(), 2 + 4 + 3 + 9 + 3 + 3) # vents, field pools, then the regions'
+	# the same seed, the same everything
+	assert_eq(a.enemies.size(), b.enemies.size())
+	assert_eq(a.hazards.size(), b.hazards.size())
+	assert_eq(a.obstacles.size(), b.obstacles.size())
+	assert_eq(a.scenery.size(), b.scenery.size())
+	assert_eq(a.plants.size(), b.plants.size())
+	for i: int in a.obstacles.size():
+		assert_eq(a.obstacles[i]["pos"], b.obstacles[i]["pos"])
+	# what the content asks for is there
+	assert_eq(a.gates.size(), tables.wi_in("field", "pockets", 3))
 	assert_eq(a.hazards[0].hazard_id, "fire")
-	assert_eq(a.posies.size(), 12)
+	assert_eq(a.posies.size(), tables.wi_in("field", "posies", 22))
 	assert_eq(a.regions.size(), 6)
+	assert_eq(a.arenas.size(), (tables.world["arenas"] as Array).size())
+	assert_eq(a.camps.size(), 1 + tables.wi_in("field", "camps", 5))
 	assert_eq(a.sprouts.size(), 17 + 6 * 4)
 	var c := _world(4)
 	assert_ne(a.objects[0].pos, c.objects[0].pos)
+	assert_ne(a.regions[0]["pos"], c.regions[0]["pos"])
 
 
 func test_pluck_makes_followers() -> void:

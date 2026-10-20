@@ -211,6 +211,33 @@
       "value": 300,
       "radius": 1.0,
       "set": "nest"
+    },
+    {
+      "id": "relic_crown",
+      "name": "Tin Crown",
+      "kind": "relic",
+      "weight": 25,
+      "max_carriers": 30,
+      "value": 600,
+      "radius": 0.9
+    },
+    {
+      "id": "relic_compass",
+      "name": "Brass Compass",
+      "kind": "relic",
+      "weight": 20,
+      "max_carriers": 24,
+      "value": 550,
+      "radius": 0.85
+    },
+    {
+      "id": "relic_lantern",
+      "name": "Old Lantern",
+      "kind": "relic",
+      "weight": 22,
+      "max_carriers": 26,
+      "value": 580,
+      "radius": 0.9
     }
   ]
 }

@@ -52,7 +52,7 @@ func test_fixture_v1_loads_and_deltas_apply() -> void:
 
 func test_v1_migrates_to_v2_with_nothing_discovered() -> void:
 	var m: Dictionary = Migrate.run(_fixture())
-	assert_eq(int(m["schemaVersion"]), 2)
+	assert_eq(int(m["schemaVersion"]), Migrate.CURRENT)
 	assert_eq((m["discovered"] as Array).size(), 0)
 
 

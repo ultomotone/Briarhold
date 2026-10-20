@@ -38,6 +38,13 @@ var plants: Array[Dictionary] = [] # view-only scatter {"pos", "s", "kind"}
 ## The larger furniture of the field, for the view: stumps, fallen branches, ruins, giant
 ## mushrooms and daisies. Each also put obstacles in `obstacles` (kind tagged) for the sim.
 var scenery: Array[Dictionary] = []
+## Campsites the Hold can move to: {"id", "name", "pos"}. The first is "home", the Hold's own
+## clearing at the origin. Rolled from the seed; which one is the Hold now is saved (camp_id).
+var camps: Array[Dictionary] = []
+var camp_id: String = "home"
+var camp_t: float = 0.0 # seconds T has been held at a campsite
+## Boss arenas: {"id", "name", "pos", "radius", "boss"}. Rolled from the seed.
+var arenas: Array[Dictionary] = []
 var hash: SpatialHash
 var next_id: int = 1
 var deltas: Dictionary = {"taken": PackedStringArray(), "felled": PackedStringArray(), "opened": PackedStringArray(), "rooted": PackedStringArray()}
@@ -57,7 +64,7 @@ func _init(tables: ContentTables, world_seed: int) -> void:
 	field = Heightfield.new(world_seed, tables.world)
 	paths = PathProvider.new()
 	events = SimEvents.new()
-	hash = SpatialHash.new(1.0)
+	hash = SpatialHash.new(3.0)
 	knight = Entities.Knight.new()
 	knight.max_hp = tables.wn("knight", "hp", 100.0)
 	knight.hp = knight.max_hp
@@ -102,6 +109,7 @@ func step(cmd: Commands, dt: float) -> void:
 	HazardSystem.step(self, dt)
 	HoldSystem.step(self, dt)
 	FieldSystem.step(self, dt)
+	CampSystem.step(self, cmd, dt)
 	if tick % 15 == 0:
 		_discover()
 	_end_tick()
@@ -117,6 +125,21 @@ func _discover() -> void:
 		if flat_dist(knight.pos, c) <= float(r["radius"]):
 			discovered.append(id)
 			events.push("region_found", {"id": id, "name": r["name"], "type": r["type"], "line": r["line"], "pos": c})
+	for cp: Dictionary in camps:
+		var cid: String = cp["id"]
+		if cid == "home" or discovered.has(cid):
+			continue
+		if flat_dist(knight.pos, cp["pos"]) <= 22.0:
+			discovered.append(cid)
+			events.push("camp_found", {"id": cid, "name": cp["name"], "pos": cp["pos"]})
+	for ar: Dictionary in arenas:
+		var aid: String = ar["id"]
+		if discovered.has(aid):
+			continue
+		if flat_dist(knight.pos, ar["pos"]) <= float(ar["radius"]) + 14.0:
+			discovered.append(aid)
+			var bt: Types.EnemyType = content.enemy(str(ar["boss"]))
+			events.push("arena_found", {"id": aid, "name": ar["name"], "boss": bt.name if bt != null else "", "line": bt.line if bt != null else "", "pos": ar["pos"]})
 
 
 func _begin_tick() -> void:
@@ -481,8 +504,12 @@ var _ob_grid_n: int = -1
 func _ob_index() -> void:
 	if _ob_grid_n == obstacles.size():
 		return
-	_ob_grid.clear()
-	for i: int in obstacles.size():
+	# worldgen only appends: file just the new ones. Anything else (a cleared list) rebuilds.
+	var start: int = _ob_grid_n
+	if start < 0 or start > obstacles.size():
+		_ob_grid.clear()
+		start = 0
+	for i: int in range(start, obstacles.size()):
 		var ob: Dictionary = obstacles[i]
 		var c: Vector3 = ob["pos"]
 		var r: float = float(ob["r"]) + OB_MARGIN
@@ -512,6 +539,43 @@ func blocked(p: Vector3, margin: float) -> bool:
 		var c: Vector3 = ob["pos"]
 		if flat_dist(p, c) < float(ob["r"]) + margin:
 			return true
+	return false
+
+
+## The ground's own conditions on a walker's pace: snow drags at everything but Frost sprigs,
+## sand at everything but Embers, jungle undergrowth at everything but Thorns. Moths fly over
+## it all. The gnome feels each a little ("knight"). Deterministic, from the climate there.
+func ground_mult(p: Vector3, type_id: String) -> float:
+	if type_id == "moth":
+		return 1.0
+	var cl: Vector3 = field.climate(p.x, p.z)
+	if cl == Vector3.ZERO:
+		return 1.0
+	if type_id == "knight":
+		return 1.0 - 0.12 * cl.x - 0.08 * cl.y - 0.06 * cl.z
+	var m: float = 1.0
+	if type_id != "frost":
+		m -= 0.22 * cl.x
+	if type_id != "ember":
+		m -= 0.15 * cl.y
+	if type_id != "thorn":
+		m -= 0.12 * cl.z
+	return m
+
+
+## Like blocked(), for margins wider than OB_MARGIN (placing a big trunk or a hollow log): checks
+## the 3x3 cells around p, good for margins up to OB_CELL + OB_MARGIN.
+func blocked_wide(p: Vector3, margin: float) -> bool:
+	_ob_index()
+	var cx: int = floori(p.x / OB_CELL)
+	var cz: int = floori(p.z / OB_CELL)
+	for gx: int in range(cx - 1, cx + 2):
+		for gz: int in range(cz - 1, cz + 2):
+			var arr: PackedInt32Array = _ob_grid.get(Vector2i(gx, gz), PackedInt32Array())
+			for i: int in arr:
+				var ob: Dictionary = obstacles[i]
+				if flat_dist(p, ob["pos"]) < float(ob["r"]) + margin:
+					return true
 	return false
 
 

@@ -26,7 +26,10 @@ Controls
   Mouse wheel   zoom
   Middle mouse  hold and drag to turn the camera
   Z / V         turn the camera
+  T             at a camp's beacon (hold): move the Hold there
   Esc           pause
 
 Get home to the ring before night. Things come out after dark.
+The world is big: snow one way, sand or jungle another. Snow slows all but Frost sprigs,
+sand all but Embers, jungle all but Thorns. Find a camp out there and move the Hold to it.
 The game saves on its own, in your user folder.

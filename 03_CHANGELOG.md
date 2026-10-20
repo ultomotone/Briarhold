@@ -1,5 +1,50 @@
 # CHANGELOG — decisions with reasoning, newest first
 
+## 2026-10-20 — S000g: an open world with climates, campsites and bosses (owner-present session)
+
+His asks: more nature, trees, logs to travel through, less grassland; the territories not laid
+out in a circle, more map in any direction, optional campsites to move to, an open-world feel;
+bosses like the real thing; sprigs that look and feel like his reference images; graphics
+closer to them. Then, mid-session: no symmetry anywhere, and biomes that slowly turn into other
+environments (arctic, desert, jungle) with their own conditions.
+
+- **A bigger, unpatterned map.** 500 m across (was 320). Territories, three boss arenas and five
+  campsites are scattered anywhere in the square with room between them; no ring, no even
+  spacing, different every seed.
+- **Climates.** Each world has a seeded cold direction and wet direction bent by slow noise:
+  one side runs to arctic, the other to desert or jungle, through tens of metres of blend. Snow
+  slows everything but Frost sprigs, sand everything but Embers, jungle undergrowth everything
+  but Thorns; Moths fly over all of it. Each climate has its trouble (ice fields, hot vents,
+  spore clouds, each with a pellet inside) and its look: snowy pines and ice crags; dunes,
+  cacti, sandstone and the ribs of something huge you walk through; jungle trees with vines,
+  giant leaves, mossy boulders. The air changes with it: pale haze and falling snow, warm dust,
+  green damp and drifting spores. A banner says when he crosses into the snow, sand or jungle.
+- **Temperate biomes.** Woodland (great trees, hollow logs you walk through, stumps,
+  mushrooms), rocky country (crags, outcrops), marsh (pools with lilies, reeds), old garden
+  (flower pots, some tipped over with a pellet inside; bricks; ruins), meadow (giant daisies).
+  The terrain is coloured per vertex by biome and climate and shaded smooth.
+- **Campsites.** Hold T at a camp's beacon for a second and the Hold moves there: shrines, safe
+  ring, night raids and all. The origin is a camp too. Save schema v3 keeps which camp.
+- **Bosses.** Thornback Behemoth (bites six, stomps, charges), Hollow Queen (burrows, bursts up,
+  bites, stomps), Cinder Matriarch (stomps, breathes fire, charges), each in an arena with a
+  relic and a Heartroot. Bosses try a list of moves in turn; the stomp is new (crushes all
+  but Stone and Moth, throws riders off). A health bar shows while one fights nearby.
+- **Sprigs** now have the genre's proportions: a teardrop head tapering into a long stem, big
+  eyes, a slim body, thin limbs; Embers have a pointed nose, Sparks big ears.
+- **Graphics.** Brighter sky and grass, a dense grass-and-clover carpet near the camera, softer
+  far focus, smoother stones. Anything tall (crowns, logs, pots, crags) cuts a dithered window
+  round the gnome so he never vanishes behind it.
+- **Map.** The minimap now centres on him, shows 150 m round him tinted by biome and climate,
+  and pins known camps, arenas and territories to its rim.
+
+**Speed.** The bigger world first ran at 16 s to load and 11 ms per sim tick. Now: climate and
+biome maps baked once per seed, heights baked to a 2 m grid after worldgen (0.8 µs a lookup,
+was 32), the noise hash inlined, the spatial hash at 3 m with an early-out, obstacles indexed
+incrementally, posy checks staggered. Worldgen about 2 s, sim about 3 ms a tick with a squad out.
+
+**Gate.** import · check · 94 tests · fourteen shots read (new: forest, arctic, desert, jungle,
+boss).
+
 ## 2026-10-16 — S000f: cuter sprigs, clear shrines, a freer camera, beasts, and more ground (owner-present session)
 
 His asks, all in one session: cuter sprigs with leafier leaves; shrines at the Hold that say

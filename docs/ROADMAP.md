@@ -27,6 +27,9 @@ seconds of play.
 - [x] S000f Second feedback pass: cuter sprigs and leafier leaves, shrines with emblems and names,
   zoom to 46 m and middle-drag orbit, a continuous day/night, six beasts with abilities
   (breath, leap, charge, gust, burrow), stumps, branches, ruins, mushrooms, daisies, ridges.
+- [x] S000g The open world: 500 m, far places scattered without pattern, climates (arctic,
+  desert, jungle) with their conditions and hazards, temperate biomes, campsites the Hold moves
+  to, three bosses in arenas, genre-proportioned sprigs, grass carpet, see-through tall things.
 
 ## Arc 1 — Feel and legibility (the slice made honest)
 

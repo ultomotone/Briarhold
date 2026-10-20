@@ -1,5 +1,5 @@
 {
-  "_doc": "Bestiary. All numbers deterministic: no hit chance, no damage rolls. bite_count = sprigs eaten per bite; telegraph_seconds = visible wind-up before the bite lands; itch_damage = damage taken before it shakes attackers off; seeds = shrine seeds when the corpse is carried home. sleeps_by_day: dormant until the knight or a sprig enters wake_radius. night: spawns only at night, retreats at dawn. itch_time: the shake needs both itch_damage taken AND itch_time elapsed since the last shake, so a burst cannot shake it early. back_multiplier: damage taken from behind. roams: wanders on its own around its home. prey: runs from the gnome and the squad instead of hunting them. attack: bite (mouth in front) | breath (a cone of breath_hazard out to attack_range, cone_deg wide; sprigs immune to it shrug it off) | leap (jumps to where its target stood when it crouched, crushing everything within leap_radius that is not immune to crush) | charge (rushes charge_distance in a straight line at charge_speed, trampling what is not immune to crush; dazed for daze_seconds after) | gust (blows sprigs in a cone gust_push metres back and stuns them; immune to gust stands firm) | burrow (travels underground where nothing can touch it, erupts under its target eating bite_count, then fights on the surface for surface_seconds) | none. attack_range: how close it must be to start the attack. front_multiplier: damage taken from the front (armour).",
+  "_doc": "Bestiary. All numbers deterministic: no hit chance, no damage rolls. bite_count = sprigs eaten per bite; telegraph_seconds = visible wind-up before the bite lands; itch_damage = damage taken before it shakes attackers off; seeds = shrine seeds when the corpse is carried home. sleeps_by_day: dormant until the knight or a sprig enters wake_radius. night: spawns only at night, retreats at dawn. itch_time: the shake needs both itch_damage taken AND itch_time elapsed since the last shake, so a burst cannot shake it early. back_multiplier: damage taken from behind. roams: wanders on its own around its home. prey: runs from the gnome and the squad instead of hunting them. attack: bite (mouth in front) | breath (a cone of breath_hazard out to attack_range, cone_deg wide; sprigs immune to it shrug it off) | leap (jumps to where its target stood when it crouched, crushing everything within leap_radius that is not immune to crush) | charge (rushes charge_distance in a straight line at charge_speed, trampling what is not immune to crush; dazed for daze_seconds after) | gust (blows sprigs in a cone gust_push metres back and stuns them; immune to gust stands firm) | burrow (travels underground where nothing can touch it, erupts under its target eating bite_count, then fights on the surface for surface_seconds) | none. attack_range: how close it must be to start the attack. front_multiplier: damage taken from the front (armour). stomp: rears up and comes down where it stands, crushing everything within the move's range that is not immune to crush and throwing off whatever is hanging on. boss: a great beast in an arena of its own; its name and health show at the top of the screen while it fights. moves: the boss's attacks in the order it tries them, each with the range it must be within; it uses the first in turn whose range the target is inside.",
   "enemies": [
     {
       "id": "grub",
@@ -273,6 +273,148 @@
       "max_carriers": 10,
       "seeds": 6,
       "line": "A moving mound. Nothing touches it underground. It comes up under you; when it surfaces, it is yours to hit."
+    },
+    {
+      "sleeps_by_day": true,
+      "night": false,
+      "value": 0,
+      "boss": true,
+      "roams": false,
+      "prey": false,
+      "id": "thornback_behemoth",
+      "name": "Thornback Behemoth",
+      "colour_key": "enemy_behemoth",
+      "hp": 6500.0,
+      "speed": 2.1,
+      "radius": 2.6,
+      "height": 2.6,
+      "attack": "bite",
+      "bite_count": 6,
+      "bite_reach": 1.6,
+      "leap_radius": 4.6,
+      "charge_speed": 8.5,
+      "charge_distance": 16.0,
+      "daze_seconds": 3.0,
+      "moves": [
+        {
+          "attack": "bite",
+          "range": 4.2
+        },
+        {
+          "attack": "stomp",
+          "range": 4.6
+        },
+        {
+          "attack": "charge",
+          "range": 15.0
+        }
+      ],
+      "damage_to_knight": 28.0,
+      "telegraph_seconds": 1.0,
+      "attack_cooldown": 1.8,
+      "itch_damage": 900.0,
+      "itch_time": 6.0,
+      "shake_stun_seconds": 1.0,
+      "back_multiplier": 1.5,
+      "wake_radius": 13.0,
+      "leash_radius": 24.0,
+      "weight": 60,
+      "max_carriers": 80,
+      "seeds": 60,
+      "line": "The great grub of the thorns. Bites six at a time, stomps, and charges across its throne. Hit it from behind; scatter when it rears."
+    },
+    {
+      "sleeps_by_day": true,
+      "night": false,
+      "value": 0,
+      "boss": true,
+      "roams": false,
+      "prey": false,
+      "id": "hollow_queen",
+      "name": "Hollow Queen",
+      "colour_key": "enemy_queen",
+      "hp": 5200.0,
+      "speed": 4.2,
+      "radius": 2.0,
+      "height": 2.0,
+      "attack": "burrow",
+      "bite_count": 5,
+      "bite_reach": 1.4,
+      "leap_radius": 4.0,
+      "surface_seconds": 11.0,
+      "moves": [
+        {
+          "attack": "bite",
+          "range": 3.4
+        },
+        {
+          "attack": "stomp",
+          "range": 4.0
+        }
+      ],
+      "damage_to_knight": 24.0,
+      "telegraph_seconds": 1.0,
+      "attack_cooldown": 1.6,
+      "itch_damage": 700.0,
+      "itch_time": 5.0,
+      "shake_stun_seconds": 0.9,
+      "back_multiplier": 1.25,
+      "wake_radius": 15.0,
+      "leash_radius": 26.0,
+      "weight": 45,
+      "max_carriers": 60,
+      "seeds": 50,
+      "line": "Mother of the moles. Rides under the ground, bursts up beneath your squad, then fights above ground a while. Whatever's left standing, hit it then."
+    },
+    {
+      "sleeps_by_day": true,
+      "night": false,
+      "value": 0,
+      "boss": true,
+      "roams": false,
+      "prey": false,
+      "id": "cinder_matriarch",
+      "name": "Cinder Matriarch",
+      "colour_key": "enemy_matriarch",
+      "hp": 5800.0,
+      "speed": 2.4,
+      "radius": 2.3,
+      "height": 2.4,
+      "attack": "breath",
+      "breath_hazard": "fire",
+      "cone_deg": 70.0,
+      "attack_range": 7.5,
+      "charge_speed": 9.0,
+      "charge_distance": 15.0,
+      "daze_seconds": 3.0,
+      "leap_radius": 4.2,
+      "moves": [
+        {
+          "attack": "stomp",
+          "range": 4.2
+        },
+        {
+          "attack": "breath",
+          "range": 7.5
+        },
+        {
+          "attack": "charge",
+          "range": 15.0
+        }
+      ],
+      "damage_to_knight": 24.0,
+      "telegraph_seconds": 1.1,
+      "attack_cooldown": 2.0,
+      "itch_damage": 800.0,
+      "itch_time": 5.0,
+      "shake_stun_seconds": 0.9,
+      "back_multiplier": 1.4,
+      "wake_radius": 13.0,
+      "leash_radius": 24.0,
+      "weight": 55,
+      "max_carriers": 70,
+      "seeds": 55,
+      "line": "The hog of the ash pit. Breathes fire across half the arena, stomps, and charges. Bring Embers."
     }
   ]
 }

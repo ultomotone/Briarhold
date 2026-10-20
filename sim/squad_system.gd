@@ -56,7 +56,7 @@ static func step(w: SimWorld, cmd: Commands, dt: float) -> void:
 ## The sprig's own speed with maturity and any status applied.
 static func move_speed(w: SimWorld, s: Entities.Sprig) -> float:
 	var t: Types.SprigType = w.sprig_type(s)
-	var v: float = t.speed * w.maturity_mult(s)
+	var v: float = t.speed * w.maturity_mult(s) * w.ground_mult(s.pos, s.type_id)
 	if not s.status.is_empty():
 		var hz: Types.HazardType = w.content.hazard(s.hazard_id)
 		if hz != null:

@@ -48,6 +48,11 @@ func _ready() -> void:
 	await _settle(40)
 	if not await _capture("latest-far.png"):
 		return
+	for pose: String in ["forest", "arctic", "desert", "jungle", "boss"]:
+		main.shot_pose(pose)
+		await _settle(40)
+		if not await _capture("latest-%s.png" % pose):
+			return
 	main.shot_pose("night")
 	await _settle(30)
 	if not await _capture("latest-night.png"):

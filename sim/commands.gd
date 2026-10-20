@@ -13,6 +13,7 @@ var whistle_held: bool = false
 var swarm_held: bool = false
 var pluck_held: bool = false
 var store_held: bool = false
+var camp_held: bool = false # T: at a campsite, move the Hold here
 var charge_pressed: bool = false
 var dismiss_pressed: bool = false
 var select_delta: int = 0

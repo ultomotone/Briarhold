@@ -128,6 +128,12 @@ func handle(ev: Dictionary) -> void:
 			_puff(ev["pos"] + Vector3(0.0, 1.2, 0.0), pal.col("sprig_" + str(ev["type"])).lightened(0.5))
 		"region_found":
 			_note("Found: %s. %s" % [str(ev["name"]), str(ev["line"])])
+		"camp_found":
+			_note("Found: %s. Hold T at its beacon to move the Hold here." % str(ev["name"]))
+		"arena_found":
+			_note("%s. %s: %s" % [str(ev["name"]), str(ev["boss"]), str(ev["line"])])
+		"camp_moved":
+			_note("The Hold is at %s now. The shrines came too." % str(ev["name"]))
 		"frozen":
 			_puff(ev["pos"] + Vector3(0.0, 0.8, 0.0), pal.col("sprig_frost"))
 			_note("Frozen solid.")

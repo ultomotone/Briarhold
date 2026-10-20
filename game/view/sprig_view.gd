@@ -44,6 +44,8 @@ func _make_mm(type_id: String, sprout: bool) -> MultiMeshInstance3D:
 	mat.set_shader_parameter("stalk", pal.col("scatter_stalk"))
 	mat.set_shader_parameter("buried", 1.0 if sprout else 0.0)
 	mat.set_shader_parameter("wings", 1.0 if tables.sprig(type_id).wings else 0.0)
+	mat.set_shader_parameter("nose", 1.0 if tables.sprig(type_id).feature == "nose" else 0.0)
+	mat.set_shader_parameter("ears", 1.0 if tables.sprig(type_id).feature == "ears" else 0.0)
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	add_child(mi)
@@ -150,63 +152,103 @@ func update(w: SimWorld, alpha: float, selected: String, delta: float, now: floa
 		mi.multimesh.visible_instance_count = int(scounts.get(id, 0))
 
 
-## A sprig. Owner verdicts: 2026-09-02 "cuter, like the real thing"; 2026-10-16 "cuter, and the
-## leaves more leafy". A big round head on a small pear body; big eyes with whites, a dark pupil
-## and a highlight; blush and a small smile; stubby limbs with round hands and feet; a curved
-## stem from the crown carrying a broad leaf with a midrib, a teardrop bud, or a five-petal
-## bloom by maturity. Part ids ride UV.x so the shader can colour each part and show only the
-## top that matches maturity; UV.y carries "distance from the midrib" on leaves and petals.
-## Parts: 0 body/head, 1 stem, 2 leaf, 3 bud, 4 petals, 5 bloom centre, 6 pupils and mouth,
-## 7 limbs, 8 wings, 9 eye whites and highlights, 10 blush.
-const CROWN := Vector3(0.0, 1.08, 0.0)
+## A sprig. Owner verdicts: 2026-09-02 "cuter, like the real thing"; 2026-10-16 "leaves more
+## leafy"; 2026-10-20 "look and feel more like these" (reference images of the genre). The
+## proportions of the genre, made from our own primitives: a slim body on thin legs, thin arms,
+## a big teardrop head that tapers up into a long stem, large eyes with dark pupils, and at the
+## stem's tip a leaf, a bud, or a bloom by maturity. Some types carry a feature of their own:
+## Embers a pointed nose, Sparks big swept ears (sprigs.json "feature"). Part ids ride UV.x;
+## UV.y carries "distance from the midrib" on leaves and petals.
+## Parts: 0 body/head, 1 stem, 2 leaf, 3 bud, 4 petals, 5 bloom centre, 6 pupils, 7 limbs,
+## 8 wings, 9 eye whites and highlights, 10 (unused), 11 nose, 12 ears.
+const CROWN := Vector3(0.03, 1.5, 0.0)
+const HEAD_Y0: float = 0.47
+const HEAD_Y1: float = 1.0
+
+
+static func _head_r(u: float) -> float:
+	return 0.18 * pow(sin(PI * pow(clampf(u, 0.0, 1.0), 0.62)), 0.85)
 
 
 static func _make_mesh() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	# legs: short and stubby, round feet a little forward
-	_cyl(st, Vector3(-0.065, 0.03, 0.0), Vector3(-0.06, 0.2, 0.0), 0.028, 6, 7)
-	_cyl(st, Vector3(0.065, 0.03, 0.0), Vector3(0.06, 0.2, 0.0), 0.028, 6, 7)
-	_ellip(st, Vector3(-0.066, 0.03, 0.025), Vector3(0.042, 0.032, 0.055), 7, 4, 7)
-	_ellip(st, Vector3(0.066, 0.03, 0.025), Vector3(0.042, 0.032, 0.055), 7, 4, 7)
-	# body: a small pear
-	_ellip(st, Vector3(0.0, 0.3, 0.0), Vector3(0.125, 0.15, 0.115), 12, 7, 0)
-	# arms with round hands, angled down and a little forward
-	_cyl(st, Vector3(-0.11, 0.37, 0.0), Vector3(-0.2, 0.25, 0.05), 0.022, 5, 7)
-	_cyl(st, Vector3(0.11, 0.37, 0.0), Vector3(0.2, 0.25, 0.05), 0.022, 5, 7)
-	_sphere(st, Vector3(-0.205, 0.24, 0.055), 0.034, 6, 4, 7)
-	_sphere(st, Vector3(0.205, 0.24, 0.055), 0.034, 6, 4, 7)
-	# head: big, round, a touch wider than tall
-	_ellip(st, Vector3(0.0, 0.6, 0.0), Vector3(0.245, 0.232, 0.235), 14, 9, 0)
-	# eyes: whites, pupils, one highlight each (+z is forward)
+	# legs: thin, with small round feet a little forward
 	for sx: float in [-1.0, 1.0]:
-		_ellip(st, Vector3(0.093 * sx, 0.59, 0.198), Vector3(0.064, 0.078, 0.042), 9, 6, 9)
-		_ellip(st, Vector3(0.088 * sx, 0.582, 0.231), Vector3(0.041, 0.054, 0.024), 8, 5, 6)
-		_sphere(st, Vector3(0.088 * sx + 0.016, 0.605, 0.254), 0.015, 6, 3, 9)
-		# blush under each eye
-		_ellip(st, Vector3(0.152 * sx, 0.515, 0.168), Vector3(0.042, 0.022, 0.016), 7, 4, 10)
-	# a small smile
-	_ellip(st, Vector3(0.0, 0.508, 0.218), Vector3(0.026, 0.009, 0.012), 7, 3, 6)
-	# stem: two segments, a gentle S out of the crown
-	_cyl(st, Vector3(0.0, 0.8, 0.0), Vector3(-0.012, 0.95, -0.02), 0.019, 6, 1)
-	_cyl(st, Vector3(-0.012, 0.95, -0.02), CROWN, 0.017, 6, 1)
-	# leaf (maturity 0): broad, pointed, folded along the midrib, curling forward at the tip
-	_leaf(st, CROWN, 0.36, 0.125, 2)
-	# bud (maturity 1): a teardrop with two small leaves under it
-	_ellip(st, CROWN + Vector3(0.0, 0.07, 0.0), Vector3(0.062, 0.09, 0.062), 9, 6, 3)
-	_ellip(st, CROWN + Vector3(0.0, 0.135, 0.0), Vector3(0.03, 0.04, 0.03), 6, 3, 3)
-	_small_leaf(st, CROWN + Vector3(0.0, 0.02, 0.0), Vector3(0.11, 0.05, 0.02), 3)
-	_small_leaf(st, CROWN + Vector3(0.0, 0.02, 0.0), Vector3(-0.11, 0.05, -0.02), 3)
+		_cyl(st, Vector3(0.055 * sx, 0.03, 0.0), Vector3(0.05 * sx, 0.28, 0.0), 0.021, 6, 7)
+		_ellip(st, Vector3(0.056 * sx, 0.025, 0.02), Vector3(0.032, 0.022, 0.048), 7, 4, 7)
+	# body: slim, a little pear
+	_ellip(st, Vector3(0.0, 0.37, 0.0), Vector3(0.085, 0.13, 0.08), 12, 7, 0)
+	# arms: thin, hanging a little forward, tiny hands
+	for sx: float in [-1.0, 1.0]:
+		_cyl(st, Vector3(0.072 * sx, 0.45, 0.0), Vector3(0.165 * sx, 0.27, 0.045), 0.017, 5, 7)
+		_sphere(st, Vector3(0.168 * sx, 0.262, 0.048), 0.024, 6, 4, 7)
+	# head: a teardrop, round at the chin, widest low, tapering up into the stem
+	_lathe(st, HEAD_Y0, HEAD_Y1, 16, 16, 0.92, 0)
+	# eyes: big whites, dark pupils, one highlight each (+z is forward)
+	for sx: float in [-1.0, 1.0]:
+		_ellip(st, Vector3(0.07 * sx, 0.71, 0.138), Vector3(0.058, 0.072, 0.032), 10, 6, 9)
+		_ellip(st, Vector3(0.067 * sx, 0.702, 0.163), Vector3(0.039, 0.05, 0.02), 8, 5, 6)
+		_sphere(st, Vector3(0.067 * sx + 0.014, 0.726, 0.178), 0.013, 6, 3, 9)
+	# Ember's nose: a short point forward from the middle of the face
+	_cone(st, Vector3(0.0, 0.655, 0.14), Vector3(0.0, 0.67, 0.245), 0.034, 8, 11)
+	# Spark's ears: big flat points swept back from the sides of the head
+	for sx: float in [-1.0, 1.0]:
+		var root := Vector3(0.15 * sx, 0.75, -0.01)
+		var tip := Vector3(0.34 * sx, 0.88, -0.07)
+		var up := Vector3(0.0, 0.07, 0.0)
+		_tri_uv(st, root - up, tip, root + up, 0.0, 0.0, 0.0, 12)
+	# stem: long and thin, a gentle curve from the head's point to the crown
+	_cyl(st, Vector3(0.0, 0.98, 0.0), Vector3(0.0, 1.22, -0.015), 0.016, 6, 1)
+	_cyl(st, Vector3(0.0, 1.22, -0.015), CROWN, 0.014, 6, 1)
+	# leaf (maturity 0)
+	_leaf(st, CROWN, 0.34, 0.12, 2)
+	# bud (maturity 1): a pale teardrop with two small leaves under it
+	_ellip(st, CROWN + Vector3(0.0, 0.075, 0.0), Vector3(0.058, 0.09, 0.058), 9, 6, 3)
+	_ellip(st, CROWN + Vector3(0.0, 0.14, 0.0), Vector3(0.028, 0.038, 0.028), 6, 3, 3)
+	_small_leaf(st, CROWN + Vector3(0.0, 0.02, 0.0), Vector3(0.11, 0.05, 0.02), 2)
+	_small_leaf(st, CROWN + Vector3(0.0, 0.02, 0.0), Vector3(-0.11, 0.05, -0.02), 2)
 	# bloom (maturity 2): five round petals and a centre
 	for k: int in 5:
 		var a: float = float(k) / 5.0 * TAU
-		_petal(st, CROWN + Vector3(0.0, 0.04, 0.0), a, 0.14, 0.068, 4)
-	_ellip(st, CROWN + Vector3(0.0, 0.055, 0.0), Vector3(0.052, 0.035, 0.052), 8, 4, 5)
+		_petal(st, CROWN + Vector3(0.0, 0.04, 0.0), a, 0.16, 0.075, 4)
+	_ellip(st, CROWN + Vector3(0.0, 0.055, 0.0), Vector3(0.05, 0.034, 0.05), 8, 4, 5)
 	# wings (part 8): two thin panes on the back, shown only for flyers
 	for sx: float in [-1.0, 1.0]:
-		_quad(st, Vector3(0.04 * sx, 0.52, -0.1), Vector3(0.3 * sx, 0.6, -0.17), Vector3(0.27 * sx, 0.3, -0.18), Vector3(0.04 * sx, 0.32, -0.1), 8)
+		_quad(st, Vector3(0.04 * sx, 0.5, -0.07), Vector3(0.3 * sx, 0.6, -0.14), Vector3(0.27 * sx, 0.3, -0.15), Vector3(0.04 * sx, 0.32, -0.07), 8)
 	st.generate_normals()
 	return st.commit()
+
+
+## A surface of revolution from y0 to y1 with radius _head_r, the cross-section squashed in z.
+static func _lathe(st: SurfaceTool, y0: float, y1: float, rings: int, seg: int, zs: float, part: int) -> void:
+	for i: int in rings:
+		var u0: float = float(i) / float(rings)
+		var u1: float = float(i + 1) / float(rings)
+		var ya: float = lerpf(y0, y1, u0)
+		var yb: float = lerpf(y0, y1, u1)
+		var ra: float = _head_r(u0)
+		var rb: float = _head_r(u1)
+		for j: int in seg:
+			var p0: float = TAU * float(j) / float(seg)
+			var p1: float = TAU * float(j + 1) / float(seg)
+			var a := Vector3(cos(p0) * ra, ya, sin(p0) * ra * zs)
+			var b := Vector3(cos(p1) * ra, ya, sin(p1) * ra * zs)
+			var c := Vector3(cos(p1) * rb, yb, sin(p1) * rb * zs)
+			var d := Vector3(cos(p0) * rb, yb, sin(p0) * rb * zs)
+			_quad(st, d, c, b, a, part)
+
+
+static func _cone(st: SurfaceTool, base: Vector3, tip: Vector3, r: float, seg: int, part: int) -> void:
+	var axis: Vector3 = (tip - base).normalized()
+	var u: Vector3 = axis.cross(Vector3.UP).normalized()
+	var v: Vector3 = axis.cross(u).normalized()
+	for j: int in seg:
+		var p0: float = TAU * float(j) / float(seg)
+		var p1: float = TAU * float(j + 1) / float(seg)
+		var a: Vector3 = base + (u * cos(p0) + v * sin(p0)) * r
+		var b: Vector3 = base + (u * cos(p1) + v * sin(p1)) * r
+		_tri_uv(st, a, b, tip, 0.0, 0.0, 0.0, part)
 
 
 ## A leaf from base along a curve rising and leaning forward. Strips across the midrib, edges a
@@ -330,6 +372,8 @@ uniform vec4 tint : source_color = vec4(1.0);
 uniform vec4 stalk : source_color = vec4(0.5, 0.45, 0.3, 1.0);
 uniform float buried = 0.0;
 uniform float wings = 0.0;
+uniform float nose = 0.0;
+uniform float ears = 0.0;
 varying float part;
 varying float across;
 varying vec4 icol;
@@ -339,40 +383,43 @@ void vertex() {
 	float moving = INSTANCE_CUSTOM.z;
 	part = floor(UV.x + 0.5);
 	across = UV.y;
-	vec3 crown = vec3(0.0, 1.08, 0.0);
+	vec3 crown = vec3(0.03, 1.5, 0.0);
 	// only the top that matches maturity exists; the others collapse into the stem tip
 	bool hide = (part == 2.0 && maturity > 0.5) || (part == 3.0 && (maturity < 0.5 || maturity > 1.5)) || ((part == 4.0 || part == 5.0) && maturity < 1.5);
-	if (buried > 0.5 && (part == 0.0 || part == 6.0 || part == 7.0 || part == 8.0 || part == 9.0 || part == 10.0)) {
+	if (buried > 0.5 && (part == 0.0 || part == 6.0 || part == 7.0 || part == 8.0 || part == 9.0 || part == 10.0 || part == 11.0 || part == 12.0)) {
 		hide = true;
 	}
 	if (part == 8.0 && wings < 0.5) {
+		hide = true;
+	}
+	if ((part == 11.0 && nose < 0.5) || (part == 12.0 && ears < 0.5) || part == 10.0) {
 		hide = true;
 	}
 	if (hide) {
 		VERTEX = crown;
 	}
 	// a blink now and then, each on its own phase: the eyes close to a line
-	if ((part == 6.0 || part == 9.0) && abs(VERTEX.x) > 0.04) {
+	if (part == 6.0 || part == 9.0) {
 		float b = 1.0 - smoothstep(0.0, 0.03, abs(fract(TIME * 0.21 + phase * 0.37) - 0.5));
-		VERTEX.y = mix(VERTEX.y, 0.588, b * 0.92);
+		VERTEX.y = mix(VERTEX.y, 0.71, b * 0.92);
 	}
 	// breathing: the body swells a hair on its own rhythm
-	if (part == 0.0 && VERTEX.y < 0.46) {
+	if (part == 0.0 && VERTEX.y < 0.48) {
 		VERTEX.xz *= 1.0 + 0.025 * sin(TIME * 2.4 + phase * 6.283);
 	}
 	// the stem and its top sway; the leaf tip most of all
-	float w = clamp((VERTEX.y - 0.8) * 2.4, 0.0, 1.4);
-	VERTEX.x += sin(TIME * 2.2 + phase * 6.283) * 0.045 * w;
-	VERTEX.z += sin(TIME * 1.7 + phase * 4.1) * 0.03 * w;
+	float w = clamp((VERTEX.y - 0.98) * 1.8, 0.0, 1.3);
+	VERTEX.x += sin(TIME * 2.2 + phase * 6.283) * 0.05 * w;
+	VERTEX.z += sin(TIME * 1.7 + phase * 4.1) * 0.035 * w;
 	float step_ = sin(TIME * 11.0 + phase * 6.283);
 	// limbs swing from hip and shoulder: legs (near the centre line) forward and back, arms against them
 	if (part == 7.0) {
 		float side = VERTEX.x < 0.0 ? -1.0 : 1.0;
-		if (abs(VERTEX.x) < 0.11) {
-			VERTEX.z += step_ * side * moving * (0.2 - VERTEX.y) * 1.8;
-			VERTEX.y += max(0.0, step_ * side) * moving * 0.03 * (0.2 - VERTEX.y) * 5.0;
+		if (VERTEX.y < 0.3 && abs(VERTEX.x) < 0.09) {
+			VERTEX.z += step_ * side * moving * (0.3 - VERTEX.y) * 1.6;
+			VERTEX.y += max(0.0, step_ * side) * moving * 0.04 * (0.3 - VERTEX.y) * 4.0;
 		} else {
-			VERTEX.z -= step_ * side * moving * (0.37 - VERTEX.y) * 1.6;
+			VERTEX.z -= step_ * side * moving * (0.46 - VERTEX.y) * 1.5;
 		}
 	}
 	// wings beat fast whether walking or not
@@ -384,7 +431,7 @@ void vertex() {
 	VERTEX.y += moving * abs(step_) * 0.045;
 	if (buried > 0.5) {
 		// a sprout is the stem and its top, out of the ground
-		VERTEX.y -= 0.78;
+		VERTEX.y -= 1.0;
 	}
 	icol = INSTANCE_CUSTOM;
 }
@@ -393,7 +440,7 @@ void fragment() {
 	float rough = 0.75;
 	float spec = 0.3;
 	if (part == 1.0) { col = stalk.rgb * 1.1; }
-	else if (part == 2.0 || part == 3.0) {
+	else if (part == 2.0) {
 		// a fresh leaf: dark along the rib, bright across the blade, faint veins, the
 		// underside a shade darker
 		vec3 rib = vec3(0.2, 0.45, 0.15);
@@ -402,10 +449,11 @@ void fragment() {
 		col *= 1.0 - 0.1 * smoothstep(0.88, 1.0, across);
 		col *= 1.0 - 0.07 * step(0.82, fract(across * 3.0));
 		if (!FRONT_FACING) { col *= 0.78; }
-		if (part == 3.0) { col = mix(col, tint.rgb, 0.18); }
 		rough = 0.55;
 		spec = 0.45;
 	}
+	else if (part == 3.0) { col = mix(vec3(0.98, 0.95, 0.96), tint.rgb, 0.12); rough = 0.5; }
+	else if (part == 11.0 || part == 12.0) { col = tint.rgb * (part == 12.0 ? 0.92 : 1.0); rough = 0.6; }
 	else if (part == 4.0) { col = mix(vec3(1.0, 0.99, 0.95), mix(vec3(1.0), tint.rgb, 0.35), across * 0.6); rough = 0.6; }
 	else if (part == 5.0) { col = vec3(1.0, 0.82, 0.25); }
 	else if (part == 6.0) { col = vec3(0.05, 0.05, 0.08); rough = 0.2; spec = 0.8; }

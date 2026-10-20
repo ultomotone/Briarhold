@@ -86,6 +86,13 @@ Standing test: could a player who never read a design document work out what thi
   day and night; keep adding terrain, it's basic; more animals that fight with different skills."
   All in S000f. The middle-button drag turns and tilts the view around the gnome (an orbit, not a
   free pan); if he meant sliding the view across the map, that is the next camera change.
+- 2026-10-20: "More environmental nature diversity; no trees, no logs to travel through; too
+  grasslandy. The areas shouldn't be organised as a circle; more map, any direction, more
+  randomness; optional campsites to relocate to; open-world exploration. No boss animals yet.
+  The sprigs should look and feel like these [reference images]; graphics close to this."
+  Then: "the terrain shouldn't be symmetric... biomes slowly transitioning to different
+  environments, arctic, desert, jungle, different conditions as the user explores." All in
+  S000g. The reference images set proportions and mood; every model is our own primitives.
 
 ## Keep — proven, protect it
 

@@ -1,7 +1,7 @@
 {
   "_doc": "World-shape and rule numbers. Units: the knight is 1.0 tall; the field is size x size centred on the Hold at the origin. Times in seconds of real play. Squad, carry, and sprout numbers follow Pikifen's shipped config at our scale (1 m ~ 24 Pikifen px); see docs/research/pikifen-notes.md.",
-  "size": 320.0,
-  "bound": 154.0,
+  "size": 520.0,
+  "bound": 254.0,
   "hold_radius": 9.0,
   "hold_safe_radius": 14.0,
   "terrain_amplitude": 6.0,
@@ -100,11 +100,66 @@
   },
   "beasts": {
     "_doc": "How many of each creature the field starts with, and the dawn: with beast_chance one more of a random kind wanders in.",
-    "cinder_hog": 3,
-    "pounce_toad": 4,
-    "shellback": 3,
-    "gale_puff": 4,
-    "hollow_mole": 3,
+    "cinder_hog": 4,
+    "pounce_toad": 6,
+    "shellback": 5,
+    "gale_puff": 6,
+    "hollow_mole": 5,
     "beast_chance": 0.6
-  }
+  },
+  "field": {
+    "_doc": "How much of everything the field is rolled with. The far places (territories, boss arenas, campsites) are scattered anywhere in the square with room between them; scenery follows the biomes (Heightfield.biome).",
+    "camps": 5,
+    "stones": 170,
+    "pellets": 110,
+    "grubs": 12,
+    "posies": 22,
+    "pools": 7,
+    "marsh_pools": 10,
+    "vents": 3,
+    "pockets": 3,
+    "plants": 4200,
+    "trees": 80,
+    "lone_trees": 10,
+    "hollow_logs": 18,
+    "crags": 14,
+    "outcrops": 30,
+    "pots": 16,
+    "tipped_pots": 10,
+    "bricks": 14,
+    "ruins": 9,
+    "stumps": 10,
+    "logs": 22,
+    "mushrooms": 20,
+    "daisy_meadows": 14,
+    "reeds": 50,
+    "ice_fields": 7,
+    "hot_vents": 6,
+    "spore_clouds": 6,
+    "pines": 70,
+    "ice_crags": 18,
+    "cacti": 45,
+    "sandstone": 20,
+    "skeletons": 4,
+    "jungle_trees": 75,
+    "big_leaves": 60,
+    "mossy_boulders": 18
+  },
+  "arenas": [
+    {
+      "boss": "thornback_behemoth",
+      "name": "The Bramble Throne",
+      "relic": "relic_crown"
+    },
+    {
+      "boss": "hollow_queen",
+      "name": "The Hollow",
+      "relic": "relic_compass"
+    },
+    {
+      "boss": "cinder_matriarch",
+      "name": "The Ashpit",
+      "relic": "relic_lantern"
+    }
+  ]
 }

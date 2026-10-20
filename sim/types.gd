@@ -46,6 +46,7 @@ class SprigType:
 	var can_fly: bool
 	var scale: float
 	var wings: bool
+	var feature: String # "nose" | "ears" | "": a look of its own
 	var line: String
 
 	static func from_dict(d: Dictionary) -> SprigType:
@@ -65,6 +66,7 @@ class SprigType:
 		t.can_fly = Types._b(d, "can_fly")
 		t.scale = Types._f(d, "scale", 1.0)
 		t.wings = Types._b(d, "wings")
+		t.feature = Types._s(d, "feature")
 		t.line = Types._s(d, "line")
 		return t
 
@@ -139,6 +141,22 @@ class EnemyType:
 	var daze_seconds: float
 	var front_multiplier: float
 	var surface_seconds: float
+	var boss: bool
+	## The attacks it tries in turn: [{"attack", "range"}]. One entry for an ordinary beast.
+	var moves: Array[Dictionary] = []
+
+	func has_attack(a: String) -> bool:
+		for m: Dictionary in moves:
+			if str(m["attack"]) == a:
+				return true
+		return false
+
+	## The range of its move of this kind (0 if it has none).
+	func range_of(a: String) -> float:
+		for m: Dictionary in moves:
+			if str(m["attack"]) == a:
+				return float(m["range"])
+		return 0.0
 
 	static func from_dict(d: Dictionary) -> EnemyType:
 		var t := EnemyType.new()
@@ -181,6 +199,18 @@ class EnemyType:
 		t.daze_seconds = Types._f(d, "daze_seconds", 2.0)
 		t.front_multiplier = Types._f(d, "front_multiplier", 1.0)
 		t.surface_seconds = Types._f(d, "surface_seconds", 6.0)
+		t.boss = Types._b(d, "boss")
+		var mv: Variant = d.get("moves", [])
+		if mv is Array and not (mv as Array).is_empty():
+			for m: Variant in mv:
+				if m is Dictionary:
+					var md: Dictionary = m
+					t.moves.append({"attack": str(md.get("attack", "bite")), "range": float(md.get("range", 2.0))})
+		else:
+			# one move: its own attack (a burrower bites when it is above ground)
+			var a: String = "bite" if t.attack == "burrow" else t.attack
+			var rg: float = t.bite_reach + t.radius if t.attack == "burrow" else t.attack_range
+			t.moves.append({"attack": a, "range": rg})
 		return t
 
 

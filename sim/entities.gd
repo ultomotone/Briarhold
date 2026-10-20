@@ -153,6 +153,9 @@ class Enemy:
 	var surface_t: float = 0.0 # burrowers: seconds left above ground
 	var emerge: float = -1.0 # burrowers: >=0 while the mound rumbles before it comes up
 	var strike_t: float = 99.0 # seconds since the last strike landed (the view draws breath and wind from it)
+	var attack_now: String = "" # the move being wound up or just struck (bosses have several)
+	var reach_now: float = 0.0 # that move's range
+	var move_i: int = 0 # which move it tries first next time
 
 
 class Posy:
@@ -163,6 +166,7 @@ class Posy:
 	var pellet_type: String = "ember"
 	var timer: float = 0.0 # seconds until the next pellet
 	var grown: int = 0 # pellets grown so far (the seed_id counter)
+	var holding: bool = false # a pellet of its own is still there (rechecked every 15 ticks)
 
 
 class HazardZone:

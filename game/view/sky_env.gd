@@ -7,6 +7,67 @@ var env: WorldEnvironment
 var sun: DirectionalLight3D
 var sky_mat: ProceduralSkyMaterial
 var pal: PaletteData
+## The climate round the gnome (arctic, desert, jungle), eased so crossing a border is a slow
+## change of air, not a cut.
+var climate_here: Vector3 = Vector3.ZERO
+var attrs: CameraAttributesPractical
+var _snow: GPUParticles3D
+var _dust: GPUParticles3D
+var _spores: GPUParticles3D
+
+
+## Each frame: where he is (particles follow him) and what climate that is.
+func follow(at: Vector3, cl: Vector3, cam_dist: float, delta: float) -> void:
+	climate_here = climate_here.lerp(cl, clampf(delta * 0.6, 0.0, 1.0))
+	for p: GPUParticles3D in [_snow, _dust, _spores]:
+		p.global_position = at + Vector3(0.0, 9.0, 0.0)
+	_snow.amount_ratio = clampf(climate_here.x * 1.2 - 0.1, 0.0, 1.0)
+	_dust.amount_ratio = clampf(climate_here.y * 1.2 - 0.15, 0.0, 1.0)
+	_spores.amount_ratio = clampf(climate_here.z * 1.2 - 0.1, 0.0, 1.0)
+	_snow.emitting = _snow.amount_ratio > 0.01
+	_dust.emitting = _dust.amount_ratio > 0.01
+	_spores.emitting = _spores.amount_ratio > 0.01
+	# the miniature look: what is far beyond the gnome softens
+	attrs.dof_blur_far_distance = cam_dist + 16.0
+	attrs.dof_blur_far_transition = 28.0 + cam_dist
+
+
+func _particles(col: Color, size: float, count: int, fall: float, spread: float) -> GPUParticles3D:
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = Vector3(28.0, 6.0, 28.0)
+	pm.direction = Vector3(0.3, -1.0, 0.1)
+	pm.spread = spread
+	pm.initial_velocity_min = fall * 0.6
+	pm.initial_velocity_max = fall
+	pm.gravity = Vector3(0.0, -fall * 0.3, 0.0)
+	pm.turbulence_enabled = true
+	pm.turbulence_noise_strength = 0.6
+	pm.scale_min = 0.6
+	pm.scale_max = 1.3
+	var q := SphereMesh.new()
+	q.radius = size * 0.5
+	q.height = size
+	q.radial_segments = 6
+	q.rings = 3
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = col
+	m.vertex_color_use_as_albedo = true
+	q.material = m
+	var p := GPUParticles3D.new()
+	p.amount = count
+	p.lifetime = 7.0
+	p.preprocess = 4.0
+	p.process_material = pm
+	p.draw_pass_1 = q
+	p.visibility_aabb = AABB(Vector3(-40.0, -30.0, -40.0), Vector3(80.0, 50.0, 80.0))
+	p.local_coords = false
+	p.emitting = false
+	p.amount_ratio = 0.0
+	add_child(p)
+	return p
 
 
 func build(p: PaletteData) -> void:
@@ -49,11 +110,20 @@ func build(p: PaletteData) -> void:
 	e.glow_hdr_threshold = 1.05
 	env = WorldEnvironment.new()
 	env.environment = e
+	attrs = CameraAttributesPractical.new()
+	attrs.dof_blur_far_enabled = true
+	attrs.dof_blur_far_distance = 30.0
+	attrs.dof_blur_far_transition = 40.0
+	attrs.dof_blur_amount = 0.06
+	env.camera_attributes = attrs
 	add_child(env)
+	_snow = _particles(Color(1.0, 1.0, 1.0, 0.9), 0.06, 1100, 2.0, 25.0)
+	_dust = _particles(Color(0.95, 0.85, 0.6, 0.45), 0.04, 500, 0.6, 80.0)
+	_spores = _particles(Color(0.85, 1.0, 0.6, 0.8), 0.045, 400, 0.3, 180.0)
 	sun = DirectionalLight3D.new()
 	sun.shadow_enabled = true
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-	sun.directional_shadow_max_distance = 90.0
+	sun.directional_shadow_max_distance = 140.0
 	sun.directional_shadow_split_1 = 0.08
 	sun.directional_shadow_split_2 = 0.2
 	sun.directional_shadow_split_3 = 0.45
@@ -96,8 +166,12 @@ func apply(time: float, day_s: float, night_s: float) -> void:
 	sky_mat.ground_bottom_color = pal.col("terrain_loam").darkened(0.5)
 	sky_mat.ground_horizon_color = pal.col("fog_day").lerp(pal.col("fog_night"), n)
 	var e: Environment = env.environment
-	e.fog_light_color = pal.col("fog_day").lerp(pal.col("fog_night"), n).lerp(pal.col("sky_horizon_dusk"), glow * 0.3)
-	e.fog_density = lerpf(pal.num("fog_density_day"), pal.num("fog_density_night"), n)
+	# the climate's own air: pale cold haze, warm dust, green damp
+	var cl: Vector3 = climate_here
+	var day_fog: Color = pal.col("fog_day").lerp(pal.col("fog_arctic"), cl.x).lerp(pal.col("fog_desert"), cl.y).lerp(pal.col("fog_jungle"), cl.z)
+	e.fog_light_color = day_fog.lerp(pal.col("fog_night"), n).lerp(pal.col("sky_horizon_dusk"), glow * 0.3)
+	e.fog_density = lerpf(pal.num("fog_density_day") * (1.0 + cl.x * 1.2 + cl.y * 0.6 + cl.z * 1.6), pal.num("fog_density_night"), n)
+	sky_mat.sky_horizon_color = sky_mat.sky_horizon_color.lerp(day_fog, (cl.x + cl.y + cl.z) * 0.5 * (1.0 - n))
 	e.volumetric_fog_albedo = e.fog_light_color
 	e.volumetric_fog_density = lerpf(0.004, 0.02, n)
 	e.ambient_light_energy = lerpf(pal.num("ambient_energy_day"), pal.num("ambient_energy_night"), n)

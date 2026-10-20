@@ -12,12 +12,22 @@ func _init(cell_size: float = 1.0) -> void:
 	cell = cell_size
 
 
+## The box round everything inserted this tick: a query that cannot reach it returns at once
+## (a beast asleep far across the field costs nothing).
+var _lo: Vector2 = Vector2(INF, INF)
+var _hi: Vector2 = Vector2(-INF, -INF)
+
+
 func clear() -> void:
 	_cells.clear()
 	_pos.clear()
+	_lo = Vector2(INF, INF)
+	_hi = Vector2(-INF, -INF)
 
 
 func insert(id: int, p: Vector3) -> void:
+	_lo = Vector2(minf(_lo.x, p.x), minf(_lo.y, p.z))
+	_hi = Vector2(maxf(_hi.x, p.x), maxf(_hi.y, p.z))
 	var k := Vector2i(int(floorf(p.x / cell)), int(floorf(p.z / cell)))
 	if not _cells.has(k):
 		_cells[k] = PackedInt32Array()
@@ -29,6 +39,8 @@ func insert(id: int, p: Vector3) -> void:
 
 func query(p: Vector3, r: float) -> PackedInt32Array:
 	var out: PackedInt32Array = []
+	if p.x < _lo.x - r or p.x > _hi.x + r or p.z < _lo.y - r or p.z > _hi.y + r:
+		return out
 	var r2: float = r * r
 	var cx: int = int(floorf(p.x / cell))
 	var cz: int = int(floorf(p.z / cell))

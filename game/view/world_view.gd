@@ -26,7 +26,9 @@ func build(p: PaletteData, t: ContentTables, w: SimWorld) -> void:
 	_build_hold(w)
 	_build_stones(w)
 	_build_scenery(w)
+	_build_scenery2(w)
 	_build_plants(w)
+	_build_grass(w)
 	for z: Entities.HazardZone in w.hazards:
 		if z.hazard_id == "fire":
 			_vents.append(_build_vent(z))
@@ -40,6 +42,7 @@ func build(p: PaletteData, t: ContentTables, w: SimWorld) -> void:
 			_build_frost(z)
 	for lm: Dictionary in w.landmarks:
 		_build_landmark(lm)
+	_build_camps(w)
 	_build_wires(w)
 	for po: Entities.Posy in w.posies:
 		_build_posy(po)
@@ -94,7 +97,12 @@ func _build_stones(w: SimWorld) -> void:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
-	mm.mesh = _ico(1.0)
+	var rock := SphereMesh.new()
+	rock.radius = 1.0
+	rock.height = 2.0
+	rock.radial_segments = 11
+	rock.rings = 6
+	mm.mesh = rock
 	mm.instance_count = stones.size()
 	var base: Color = pal.col("scatter_stone")
 	for i: int in stones.size():
@@ -104,16 +112,17 @@ func _build_stones(w: SimWorld) -> void:
 		var h: float = float(ob["h"])
 		var b := Basis.from_euler(Vector3(0.2 * float(i % 3), float(i) * 0.7, 0.15 * float(i % 2))).scaled(Vector3(r * 1.15, h, r * 1.05))
 		mm.set_instance_transform(i, Transform3D(b, c + Vector3(0.0, h * 0.35, 0.0)))
-		# a little variety: some warmer, some mossier, some paler
+		# a little variety: some warmer, some mossier, some paler; then the climate's own look
 		var v: float = float((i * 37) % 11) / 10.0
 		var tint: Color = base.lerp(pal.col("terrain_moss"), 0.25 * v) if i % 3 == 0 else base.lightened(0.12 * v)
+		var cl: Vector3 = w.field.climate(c.x, c.z)
+		tint = tint.lerp(pal.col("ice") if h > 3.0 else pal.col("snow"), cl.x * 0.7)
+		tint = tint.lerp(pal.col("sandstone"), cl.y * 0.85)
+		tint = tint.lerp(pal.col("terrain_moss").darkened(0.15), cl.z * 0.45)
 		mm.set_instance_color(i, tint.srgb_to_linear())
 	_stones = MultiMeshInstance3D.new()
 	_stones.multimesh = mm
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.roughness = 1.0
-	_stones.material_override = mat
+	_stones.material_override = Cutout.mat_vc(0.95, 3.0)
 	_stones.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	add_child(_stones)
 
@@ -346,6 +355,399 @@ func _build_scenery(w: SimWorld) -> void:
 				head.add_child(heart)
 
 
+## The second set of furniture (2026-10-20): great trees, snowy pines, jungle trees with vines,
+## hollow logs and tipped pots you walk through, upright pots, bricks, lily pads, reeds, cacti,
+## the ribs of something huge, giant leaves. Anything tall uses a Cutout material.
+func _build_scenery2(w: SimWorld) -> void:
+	var bark := Cutout.mat(pal.col("bark"), 0.95)
+	var bark_dark := Cutout.mat(pal.col("bark").darkened(0.25), 0.95)
+	var crown_a := Cutout.mat(pal.col("canopy"), 0.85, 5.0)
+	var crown_b := Cutout.mat(pal.col("canopy_light"), 0.85, 5.0)
+	var pine_m := Cutout.mat(pal.col("pine"), 0.9, 4.0)
+	var snow_m := Cutout.mat(pal.col("snow"), 0.5, 4.0)
+	var jcrown := Cutout.mat(pal.col("jungle_canopy"), 0.8, 5.5)
+	var jcrown_b := Cutout.mat(pal.col("jungle_canopy").lightened(0.15), 0.8, 5.5)
+	var vine_m := Cutout.mat(pal.col("vine"), 0.9, 3.0)
+	var wood := Cutout.mat(pal.col("fallen_log"), 0.95)
+	var ring_m := Cutout.mat(pal.col("terrain_dry").lightened(0.15), 0.9)
+	var moss := Cutout.mat(pal.col("terrain_moss").darkened(0.05), 1.0)
+	var terra := Cutout.mat(pal.col("terracotta"), 0.8)
+	var terra_dark := Cutout.mat(pal.col("terracotta").darkened(0.3), 0.9)
+	var soil := _mat(pal.col("terrain_loam").darkened(0.3), 1.0, 0.0)
+	var brick_m := _mat(pal.col("brick"), 0.9, 0.0)
+	var lily_m := _mat(pal.col("lily"), 0.6, 0.0)
+	var lily_f := _mat(pal.col("lily_flower"), 0.6, 0.0, pal.col("lily_flower"), 0.15)
+	var reed_m := _mat(pal.col("reed"), 0.9, 0.0)
+	var cattail_m := _mat(pal.col("cattail"), 0.95, 0.0)
+	var cactus_m := Cutout.mat(pal.col("cactus"), 0.7, 2.6)
+	var cactus_f := _mat(pal.col("flower_b"), 0.6, 0.0, pal.col("flower_b"), 0.2)
+	var bone_m := Cutout.mat(pal.col("bone"), 0.7, 3.5)
+	var socket_m := _mat(Color(0.12, 0.1, 0.08), 1.0, 0.0)
+	var leaf_m := Cutout.mat(pal.col("jungle_leaf"), 0.6, 3.0)
+	for sc: Dictionary in w.scenery:
+		match str(sc["kind"]):
+			"tree":
+				_tree_view(sc, bark, bark_dark, [crown_a, crown_b], false)
+			"jungle_tree":
+				_tree_view(sc, bark_dark, bark, [jcrown, jcrown_b], true)
+				var n: Node3D = get_child(get_child_count() - 1)
+				var h: float = float(sc["h"])
+				var crown: float = float(sc["crown"])
+				for k: int in int(sc["vines"]):
+					var a: float = float(k) * 2.3 + float(sc["rot"])
+					var length: float = h * (0.55 + 0.1 * float(k % 3))
+					var vine := _mesh(_cyl(0.07, length), vine_m)
+					vine.position = Vector3(sin(a) * crown * 0.7, h - length * 0.5, cos(a) * crown * 0.7)
+					vine.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+					n.add_child(vine)
+			"pine":
+				var n := Node3D.new()
+				n.position = sc["pos"]
+				n.rotation.y = float(sc["rot"])
+				add_child(n)
+				var h: float = float(sc["h"])
+				var rad: float = float(sc["r"])
+				var trunk := _mesh(_cyl(rad * 0.55, h * 0.4), bark_dark)
+				trunk.position.y = h * 0.2
+				n.add_child(trunk)
+				for k: int in 4:
+					var u: float = float(k) / 4.0
+					var tier := CylinderMesh.new()
+					tier.top_radius = 0.0
+					tier.bottom_radius = rad * (3.4 - 2.2 * u)
+					tier.height = h * 0.38
+					tier.radial_segments = 12
+					var tm := _mesh(tier, pine_m)
+					tm.position.y = h * (0.28 + 0.2 * u) + h * 0.19
+					n.add_child(tm)
+					var cap := CylinderMesh.new()
+					cap.top_radius = 0.0
+					cap.bottom_radius = rad * (3.4 - 2.2 * u) * 0.62
+					cap.height = h * 0.2
+					cap.radial_segments = 12
+					var cm := _mesh(cap, snow_m)
+					cm.position.y = tm.position.y + h * 0.1
+					n.add_child(cm)
+			"hollow", "pot_tipped":
+				_tube_view(sc, wood if sc["kind"] == "hollow" else terra, ring_m if sc["kind"] == "hollow" else terra_dark, moss, str(sc["kind"]) == "pot_tipped")
+			"pot":
+				var n := Node3D.new()
+				n.position = sc["pos"]
+				n.rotation.y = float(sc["rot"])
+				add_child(n)
+				var rad: float = float(sc["r"])
+				var h: float = float(sc["h"])
+				var body := CylinderMesh.new()
+				body.top_radius = rad
+				body.bottom_radius = rad * 0.78
+				body.height = h
+				body.radial_segments = 20
+				var bm := _mesh(body, terra)
+				bm.position.y = h * 0.5
+				n.add_child(bm)
+				var rim := TorusMesh.new()
+				rim.inner_radius = rad * 0.92
+				rim.outer_radius = rad * 1.12
+				rim.rings = 24
+				rim.ring_segments = 8
+				var rm := _mesh(rim, terra_dark)
+				rm.position.y = h
+				n.add_child(rm)
+				var dirt := _mesh(_cyl(rad * 0.9, 0.05), soil)
+				dirt.position.y = h - 0.15
+				n.add_child(dirt)
+				var shoot := _mesh(_ico(rad * 0.35), moss)
+				shoot.scale = Vector3(1.0, 1.6, 1.0)
+				shoot.position.y = h + rad * 0.3
+				n.add_child(shoot)
+			"bricks":
+				var n := Node3D.new()
+				n.position = sc["pos"]
+				n.rotation.y = float(sc["rot"])
+				add_child(n)
+				for k: int in int(sc["n"]):
+					var b := _mesh(_box(1.5, 0.7, 0.75), brick_m)
+					b.position = Vector3((float(k % 3) - 1.0) * 1.0, 0.35 + 0.72 * float(k / 3), 0.0)
+					b.rotation.y = 0.12 * float((k * 7) % 5 - 2)
+					n.add_child(b)
+			"lily":
+				var n := Node3D.new()
+				n.position = sc["pos"] + Vector3(0.0, Heightfield.BASIN_DEPTH * 0.0 - 0.02, 0.0)
+				add_child(n)
+				var rad: float = float(sc["r"])
+				var r := Rng.stream("lily:%s" % str(sc["pos"]))
+				for k: int in 4 + int(rad):
+					var a: float = r.randf() * TAU
+					var d: float = r.randf() * rad * 0.8
+					var pad := _mesh(_cyl(0.45 + r.randf() * 0.4, 0.04), lily_m)
+					pad.position = Vector3(sin(a) * d, 0.02, cos(a) * d)
+					n.add_child(pad)
+					if k % 3 == 0:
+						var fl := _mesh(_ico(0.18), lily_f)
+						fl.scale = Vector3(1.0, 0.6, 1.0)
+						fl.position = pad.position + Vector3(0.1, 0.1, 0.0)
+						n.add_child(fl)
+			"reeds":
+				var n := Node3D.new()
+				n.position = sc["pos"]
+				n.rotation.y = float(sc["rot"])
+				add_child(n)
+				var h: float = float(sc["h"])
+				for k: int in int(sc["n"]):
+					var a: float = float(k) * 2.4
+					var d: float = 0.15 + 0.12 * float(k % 4)
+					var hh: float = h * (0.75 + 0.25 * float((k * 3) % 4) / 3.0)
+					var stalk := _mesh(_cyl(0.035, hh), reed_m)
+					stalk.position = Vector3(sin(a) * d, hh * 0.5, cos(a) * d)
+					stalk.rotation = Vector3(cos(a) * 0.08, 0.0, -sin(a) * 0.08)
+					n.add_child(stalk)
+					if k % 2 == 0:
+						var tail := _mesh(_capsule(0.08, 0.4), cattail_m)
+						tail.position = stalk.position + Vector3(0.0, hh * 0.38, 0.0)
+						n.add_child(tail)
+			"cactus":
+				var n := Node3D.new()
+				n.position = sc["pos"]
+				n.rotation.y = float(sc["rot"])
+				add_child(n)
+				var rad: float = float(sc["r"])
+				var h: float = float(sc["h"])
+				var col := _mesh(_capsule(rad, h), cactus_m)
+				col.position.y = h * 0.5
+				n.add_child(col)
+				for k: int in int(sc["arms"]):
+					var a: float = float(k) * 2.1
+					var arm := _mesh(_capsule(rad * 0.6, h * 0.35), cactus_m)
+					arm.position = Vector3(sin(a) * rad * 1.6, h * (0.45 + 0.12 * float(k)), cos(a) * rad * 1.6)
+					n.add_child(arm)
+					var elbow := _mesh(_capsule(rad * 0.55, rad * 1.9), cactus_m)
+					elbow.position = Vector3(sin(a) * rad * 0.9, arm.position.y - h * 0.15, cos(a) * rad * 0.9)
+					elbow.rotation = Vector3(cos(a) * PI * 0.5, 0.0, -sin(a) * PI * 0.5)
+					n.add_child(elbow)
+				if int(sc["arms"]) % 2 == 1:
+					var fl := _mesh(_ico(rad * 0.45), cactus_f)
+					fl.position.y = h + rad * 0.2
+					n.add_child(fl)
+			"ribs":
+				var a: Vector3 = sc["a"]
+				var b: Vector3 = sc["b"]
+				var half: float = float(sc["half"])
+				var dir: Vector3 = Vector3(b.x - a.x, 0.0, b.z - a.z).normalized()
+				var length: float = Vector2(b.x - a.x, b.z - a.z).length()
+				var n := Node3D.new()
+				n.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), a)
+				add_child(n)
+				var count: int = int(sc["n"])
+				for k: int in count:
+					var u: float = (float(k) + 0.5) / float(count)
+					var rib := TorusMesh.new()
+					rib.inner_radius = half - 0.18
+					rib.outer_radius = half + 0.18
+					rib.rings = 24
+					rib.ring_segments = 6
+					var rm := _mesh(rib, bone_m)
+					# a vertical hoop across the spine, half of it under the ground
+					rm.rotation.x = PI * 0.5
+					rm.position = Vector3(0.0, 0.2 - 0.3 * absf(u - 0.5), -length * u)
+					rm.scale = Vector3(1.0 - 0.35 * absf(u - 0.45), 1.0, 1.0 - 0.35 * absf(u - 0.45))
+					n.add_child(rm)
+				var spine := _mesh(_cyl(0.22, length), bone_m)
+				spine.rotation.x = PI * 0.5
+				spine.position = Vector3(0.0, half * 0.92, -length * 0.5)
+				n.add_child(spine)
+				var skull := _mesh(_ico(1.6), bone_m)
+				skull.scale = Vector3(1.0, 0.75, 1.4)
+				skull.position = Vector3(0.0, 0.9, 1.8)
+				n.add_child(skull)
+				for sx: float in [-1.0, 1.0]:
+					var socket := _mesh(_ico(0.38), socket_m)
+					socket.position = Vector3(0.6 * sx, 1.25, 2.9)
+					n.add_child(socket)
+			"bigleaf":
+				var n := Node3D.new()
+				n.position = sc["pos"]
+				n.rotation.y = float(sc["rot"])
+				add_child(n)
+				var s: float = float(sc["s"])
+				var stalk := _mesh(_cyl(0.12, s * 0.6), _mat(pal.col("vine"), 0.9, 0.0))
+				stalk.position.y = s * 0.3
+				n.add_child(stalk)
+				for k: int in int(sc["n"]):
+					var a: float = float(k) / float(sc["n"]) * TAU
+					var leaf := _mesh(_ico(s * 0.5), leaf_m)
+					leaf.scale = Vector3(0.55, 0.07, 1.5)
+					leaf.position = Vector3(sin(a) * s * 0.55, s * 0.55 + 0.1 * float(k % 2), cos(a) * s * 0.55)
+					leaf.rotation = Vector3(-0.35, a, 0.0)
+					n.add_child(leaf)
+
+
+## A great tree: a tapering trunk with root flares, a crown of overlapping masses up high.
+func _tree_view(sc: Dictionary, bark: Material, bark2: Material, crowns: Array, flat: bool) -> void:
+	var n := Node3D.new()
+	n.position = sc["pos"]
+	n.rotation.y = float(sc["rot"])
+	add_child(n)
+	var rad: float = float(sc["r"])
+	var h: float = float(sc["h"])
+	var crown: float = float(sc["crown"])
+	var trunk := CylinderMesh.new()
+	trunk.top_radius = rad * 0.55
+	trunk.bottom_radius = rad
+	trunk.height = h
+	trunk.radial_segments = 14
+	var tm := _mesh(trunk, bark)
+	tm.position.y = h * 0.5
+	n.add_child(tm)
+	for k: int in 5:
+		var a: float = float(k) / 5.0 * TAU + 0.4
+		var root := _mesh(_capsule(rad * 0.38, rad * 2.4), bark2)
+		root.position = Vector3(sin(a) * rad * 1.1, rad * 0.25, cos(a) * rad * 1.1)
+		root.rotation = Vector3(cos(a) * 1.15, 0.0, -sin(a) * 1.15)
+		n.add_child(root)
+	# two low boughs
+	for k: int in 2:
+		var a: float = float(k) * 2.6 + 0.8
+		var bough := _mesh(_capsule(rad * 0.22, crown * 0.9), bark)
+		bough.position = Vector3(sin(a) * crown * 0.3, h * 0.78, cos(a) * crown * 0.3)
+		bough.rotation = Vector3(cos(a) * 0.9, 0.0, -sin(a) * 0.9)
+		n.add_child(bough)
+	var masses: int = 7
+	for k: int in masses:
+		var a: float = float(k) / float(masses) * TAU
+		var d: float = crown * (0.15 if k == 0 else 0.55)
+		var mr: float = crown * (0.55 + 0.1 * float(k % 3))
+		var mass := _mesh(_ico(mr), crowns[k % crowns.size()])
+		mass.scale = Vector3(1.0, 0.42 if flat else 0.68, 1.0)
+		mass.position = Vector3(sin(a) * d, h + (0.0 if flat else crown * 0.2) + 0.4 * float(k % 2), cos(a) * d)
+		n.add_child(mass)
+
+
+## A tube lying on the ground: hollow log (open both ends, bark, moss on top) or a tipped flower
+## pot (one end closed, a rim at the mouth).
+func _tube_view(sc: Dictionary, body: Material, end_m: Material, moss: Material, pot: bool) -> void:
+	var a: Vector3 = sc["a"]
+	var b: Vector3 = sc["b"]
+	var rad: float = float(sc["r"])
+	var y: float = float(sc["y"])
+	var dir: Vector3 = Vector3(b.x - a.x, 0.0, b.z - a.z).normalized()
+	var length: float = Vector2(b.x - a.x, b.z - a.z).length()
+	var mid := Vector3((a.x + b.x) * 0.5, y + rad * 0.55, (a.z + b.z) * 0.5)
+	var n := Node3D.new()
+	n.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), mid)
+	add_child(n)
+	var cm := CylinderMesh.new()
+	cm.top_radius = rad * (1.12 if pot else 0.95)
+	cm.bottom_radius = rad * (0.85 if pot else 1.0)
+	cm.height = length
+	cm.radial_segments = 22
+	cm.cap_top = false
+	cm.cap_bottom = false
+	var tube := _mesh(cm, body)
+	tube.rotation.x = -PI * 0.5 # the cylinder's top end at the mouth (a), bottom at b
+	n.add_child(tube)
+	var lip := TorusMesh.new()
+	lip.inner_radius = rad * (1.05 if pot else 0.85)
+	lip.outer_radius = rad * (1.22 if pot else 1.02)
+	lip.rings = 26
+	lip.ring_segments = 6
+	var mouth := _mesh(lip, end_m)
+	mouth.rotation.x = PI * 0.5
+	mouth.position.z = length * 0.5
+	n.add_child(mouth)
+	if pot:
+		var back := _mesh(_cyl(rad * 0.86, 0.12), end_m)
+		back.rotation.x = PI * 0.5
+		back.position.z = -length * 0.5
+		n.add_child(back)
+	else:
+		var tail := _mesh(lip, end_m)
+		tail.rotation.x = PI * 0.5
+		tail.position.z = -length * 0.5
+		n.add_child(tail)
+		for k: int in 3:
+			var mp := _mesh(_ico(rad * 0.5), moss)
+			mp.scale = Vector3(1.0, 0.3, 1.8)
+			mp.position = Vector3(0.0, rad * 0.92, length * (-0.3 + 0.3 * float(k)))
+			n.add_child(mp)
+
+
+## A carpet of short grass tufts and clover, thick on green ground, thin on rock and sand, none
+## on snow or water, in 64 m patches that each draw only within reach of the camera.
+func _build_grass(w: SimWorld) -> void:
+	var tuft := _tuft_mesh()
+	var clover := _clover_mesh()
+	var b: float = w.field.bound
+	var chunk: float = 64.0
+	var nc: int = int(ceilf(b * 2.0 / chunk))
+	var green: Color = pal.col("scatter_leaf").lightened(0.12)
+	var mat := StandardMaterial3D.new()
+	mat.vertex_color_use_as_albedo = true
+	mat.roughness = 0.9
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for cx: int in nc:
+		for cz: int in nc:
+			var r := Rng.stream("grass:%d:%d:%d" % [w.seed, cx, cz])
+			var tufts: Array = []
+			var clovers: Array = []
+			var x0: float = -b + float(cx) * chunk
+			var z0: float = -b + float(cz) * chunk
+			for i: int in 900:
+				var p := Vector3(x0 + r.randf() * chunk, 0.0, z0 + r.randf() * chunk)
+				var roll: float = r.randf()
+				var s: float = 0.6 + r.randf() * 0.8
+				var rot: float = r.randf() * TAU
+				if absf(p.x) > b or absf(p.z) > b:
+					continue
+				var cl: Vector3 = w.field.climate(p.x, p.z)
+				var bw: Vector4 = w.field.biome(p.x, p.z)
+				# thin where it is cold, dry, or rock; none on snow
+				if roll < cl.x * 0.95 + cl.y * 0.8 + bw.y * 0.6:
+					continue
+				if w.blocked(p, 0.1):
+					continue
+				var wet: bool = false
+				for nb: Dictionary in w.nav_blockers:
+					if SimWorld.flat_dist(p, nb["pos"]) < float(nb["r"]) - 0.2:
+						wet = true
+						break
+				if wet:
+					continue
+				var g: Vector3 = w.ground(p)
+				var tint: Color = green.lerp(pal.col("terrain_dry"), cl.y * 0.8).lerp(pal.col("jungle_leaf"), cl.z * 0.6).lerp(pal.col("snow"), cl.x * 0.4)
+				tint = tint.lerp(pal.col("terrain_wood"), bw.x * 0.4).darkened(0.08 * float(i % 3))
+				var xf := Transform3D(Basis(Vector3.UP, rot).scaled(Vector3(s, s * (1.0 + cl.z * 0.8), s)), g)
+				if cl.x > 0.4:
+					tint = tint.lerp(pal.col("snow"), 0.35)
+				if roll > 0.82 and cl.y < 0.3 and cl.x < 0.4:
+					clovers.append([xf, tint.lightened(0.05).srgb_to_linear()])
+				else:
+					tufts.append([xf, tint.srgb_to_linear()])
+			for pair: Array in [[tuft, tufts], [clover, clovers]]:
+				var rows: Array = pair[1]
+				if rows.is_empty():
+					continue
+				var mi: MultiMeshInstance3D = _instanced(pair[0], rows)
+				mi.material_override = mat
+				mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				mi.visibility_range_end = 95.0
+				mi.visibility_range_end_margin = 15.0
+				mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+
+
+## Five thin blades from one root, leaning out.
+static func _tuft_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k: int in 5:
+		var a: float = float(k) / 5.0 * TAU + 0.3
+		var out := Vector3(sin(a), 0.0, cos(a))
+		var side := Vector3(cos(a), 0.0, -sin(a)) * 0.025
+		var tip: Vector3 = out * 0.12 + Vector3(0.0, 0.32 + 0.06 * float(k % 2), 0.0)
+		_tri(st, -side, tip, side)
+	st.generate_normals()
+	return st.commit()
+
+
 ## Dither the material away close to the camera (tall tops never hide the gnome).
 static func _fade(m: StandardMaterial3D) -> StandardMaterial3D:
 	m.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_DITHER
@@ -367,10 +769,18 @@ func _build_plants(w: SimWorld) -> void:
 	var fern: Color = pal.col("fern").srgb_to_linear()
 	var clov: Color = pal.col("terrain_clover").lightened(0.08).srgb_to_linear()
 	var flowers: Array[Color] = [pal.col("flower_a").srgb_to_linear(), pal.col("flower_b").srgb_to_linear(), pal.col("flower_c").srgb_to_linear()]
+	var frosty: Color = pal.col("snow").srgb_to_linear()
+	var dry: Color = pal.col("terrain_dry").srgb_to_linear()
+	var lush: Color = pal.col("jungle_leaf").srgb_to_linear()
 	for pl: Dictionary in w.plants:
 		var c: Vector3 = pl["pos"]
 		var s: float = float(pl["s"])
 		var kind: String = str(pl["kind"])
+		var clp: Vector3 = w.field.climate(c.x, c.z)
+		leaf = pal.col("scatter_leaf").srgb_to_linear().lerp(frosty, clp.x * 0.45).lerp(dry, clp.y * 0.75).lerp(lush, clp.z * 0.6)
+		stalk = pal.col("scatter_stalk").srgb_to_linear().lerp(frosty, clp.x * 0.35).lerp(dry, clp.y * 0.8).lerp(lush, clp.z * 0.5)
+		if clp.z > 0.5:
+			s *= 1.6
 		var rot: float = float(pl["rot"])
 		var b := Basis(Vector3.UP, rot)
 		match kind:
@@ -658,6 +1068,7 @@ func update(w: SimWorld, alpha: float, t: float) -> void:
 			m.albedo_color.a = 0.08 + 0.14 * absf(sin(t * 9.0 + f.position.x)) * (0.6 + 0.4 * sin(t * 23.0 + f.position.z))
 			g.scale.y = 1.0 + 0.15 * sin(t * 2.0 + f.position.x)
 	_sync_shrines(w, dt)
+	_sync_camps(w, t)
 	_sync_objects(w, alpha)
 	_sync_enemies(w, alpha, t, dt)
 	_sync_gates(w)
@@ -679,6 +1090,7 @@ func _sync_shrines(w: SimWorld, dt: float) -> void:
 		if n == null:
 			n = _build_shrine(sh.type_id, sh.pos, true)
 			_shrines[sh.id] = n
+		n.position = sh.pos
 		var em: Node3D = n.get_node("emblem")
 		em.rotation.y += dt * 0.9
 		em.position.y = 3.25 + sin(_last_t * 1.6 + float(sh.id)) * 0.08
@@ -757,7 +1169,8 @@ func _build_shrine(type_id: String, at: Vector3, rooted: bool) -> Node3D:
 	label.modulate = tint.lightened(0.25)
 	label.outline_modulate = Color(0.04, 0.05, 0.06, 0.9)
 	label.position.y = 4.35 * sc
-	label.no_depth_test = false
+	label.no_depth_test = true # a name is never hidden behind a stone
+	label.render_priority = 2
 	label.line_spacing = -6.0
 	n.add_child(label)
 	return n
@@ -986,7 +1399,7 @@ func _sync_enemies(w: SimWorld, alpha: float, t: float, dt: float) -> void:
 			swell.scale = Vector3.ONE
 		match e.state:
 			Entities.Enemy.State.TELEGRAPH:
-				match et.attack:
+				match e.attack_now:
 					"breath", "gust":
 						# it swells, drawing breath
 						var s: float = 1.0 + e.wind * 0.22
@@ -998,6 +1411,11 @@ func _sync_enemies(w: SimWorld, alpha: float, t: float, dt: float) -> void:
 					"leap":
 						# a deep crouch before the jump
 						body.scale = Vector3(1.0 + e.wind * 0.15, 1.0 - e.wind * 0.3, 1.0 + e.wind * 0.1)
+					"stomp":
+						# it rears high before it comes down
+						body.rotation.x = -e.wind * 0.55
+						body.position.y = e.wind * et.height * 0.45
+						body.position.z = -e.wind * 0.3
 					"charge":
 						# head down, pawing the ground
 						body.rotation.x = e.wind * 0.22
@@ -1019,7 +1437,7 @@ func _sync_enemies(w: SimWorld, alpha: float, t: float, dt: float) -> void:
 					# dizzy: a slow wobble, wide open
 					body.rotation.z = sin(t * 7.0) * 0.16
 					body.rotation.x = cos(t * 5.0) * 0.08
-				elif et.attack == "bite" or et.attack == "burrow":
+				elif e.attack_now == "bite":
 					body.rotation.x = 0.35 * e.wind * 3.0
 			Entities.Enemy.State.SHAKE:
 				body.rotation.z = sin(t * 40.0) * 0.25
@@ -1032,7 +1450,7 @@ func _sync_enemies(w: SimWorld, alpha: float, t: float, dt: float) -> void:
 			_:
 				var mv: float = Vector2(e.pos.x - e.prev.x, e.pos.z - e.prev.z).length() / SimWorld.FIXED_DT
 				var gait: float = clampf(mv / maxf(0.5, et.speed), 0.0, 1.0)
-				if et.attack == "leap":
+				if et.has_attack("leap"):
 					# toads hop
 					body.position.y = absf(sin(t * 7.0 + float(e.id))) * 0.35 * gait
 				else:
@@ -1042,12 +1460,12 @@ func _sync_enemies(w: SimWorld, alpha: float, t: float, dt: float) -> void:
 		var plate: MeshInstance3D = n.get_node_or_null("body/plate")
 		if plate != null:
 			var m: StandardMaterial3D = plate.material_override
-			m.emission_energy_multiplier = e.wind * 2.5 + (0.3 if et.attack == "breath" else 0.0)
+			m.emission_energy_multiplier = e.wind * 2.5 + (0.3 if et.has_attack("breath") else 0.0)
 		# breath and gust: a cone that hangs in the air for a moment after the strike
 		var cone: MeshInstance3D = n.get_node_or_null("cone")
 		if cone != null:
 			var life: float = 0.65
-			var on: bool = e.strike_t < life and e.state != Entities.Enemy.State.BURROW
+			var on: bool = e.strike_t < life and e.state != Entities.Enemy.State.BURROW and (e.attack_now == "breath" or e.attack_now == "gust")
 			cone.visible = on
 			if on:
 				var cm: StandardMaterial3D = cone.material_override
@@ -1058,11 +1476,16 @@ func _sync_enemies(w: SimWorld, alpha: float, t: float, dt: float) -> void:
 		var mark: MeshInstance3D = n.get_node_or_null("mark")
 		if mark != null:
 			var show_mark: bool = false
-			if et.attack == "leap" and (e.state == Entities.Enemy.State.TELEGRAPH or e.state == Entities.Enemy.State.LEAP):
+			if e.attack_now == "leap" and (e.state == Entities.Enemy.State.TELEGRAPH or e.state == Entities.Enemy.State.LEAP):
 				show_mark = true
 				mark.global_position = e.aim + Vector3(0.0, 0.06, 0.0)
 				var k: float = 0.75 + 0.25 * sin(t * 14.0)
 				mark.scale = Vector3(et.leap_radius * k, 1.0, et.leap_radius * k)
+			elif e.attack_now == "stomp" and e.state == Entities.Enemy.State.TELEGRAPH:
+				show_mark = true
+				mark.global_position = e.pos + Vector3(0.0, 0.06, 0.0)
+				var k3: float = e.reach_now * (0.8 + 0.2 * sin(t * 16.0))
+				mark.scale = Vector3(k3, 1.0, k3)
 			elif et.attack == "burrow" and under and e.emerge >= 0.0:
 				show_mark = true
 				mark.global_position = e.pos + Vector3(0.0, 0.06, 0.0)
@@ -1071,7 +1494,7 @@ func _sync_enemies(w: SimWorld, alpha: float, t: float, dt: float) -> void:
 			mark.visible = show_mark
 		var lane: MeshInstance3D = n.get_node_or_null("lane")
 		if lane != null:
-			lane.visible = e.state == Entities.Enemy.State.TELEGRAPH
+			lane.visible = e.state == Entities.Enemy.State.TELEGRAPH and e.attack_now == "charge"
 			if lane.visible:
 				var lm: StandardMaterial3D = lane.material_override
 				lm.albedo_color.a = 0.15 + 0.3 * e.wind
@@ -1110,10 +1533,19 @@ func _make_enemy(e: Entities.Enemy) -> Node3D:
 			_puff_body(body, et, tint)
 		"hollow_mole":
 			_mole(n, body, et, tint)
+		"thornback_behemoth":
+			_grub(body, et, tint)
+			_spikes(body, et, pal.col("pellet_body").darkened(0.1), 9)
+		"hollow_queen":
+			_mole(n, body, et, tint)
+			_spikes(body, et, pal.col("enemy_mole_nose"), 5)
+		"cinder_matriarch":
+			_hog(body, et, tint, pal.col("vent_fire"))
+			_spikes(body, et, pal.col("vent_fire").darkened(0.2), 7)
 		_:
 			_grub(body, et, tint)
-	if et.attack == "breath" or et.attack == "gust":
-		var reach: float = et.attack_range + 0.4
+	if et.has_attack("breath") or et.has_attack("gust"):
+		var reach: float = maxf(et.range_of("breath"), et.range_of("gust")) + 0.4
 		var cm := CylinderMesh.new()
 		cm.top_radius = reach * tan(deg_to_rad(et.cone_deg * 0.5))
 		cm.bottom_radius = 0.15
@@ -1122,7 +1554,7 @@ func _make_enemy(e: Entities.Enemy) -> Node3D:
 		cm.cap_top = false
 		cm.cap_bottom = false
 		var c: Color = Color(0.95, 0.97, 1.0)
-		if et.attack == "breath":
+		if et.has_attack("breath"):
 			c = pal.col("hazard_poison") if et.breath_hazard == "poison" else pal.col("vent_fire")
 		var mat := _mat(c, 1.0, 0.0, c, 1.4)
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -1135,7 +1567,7 @@ func _make_enemy(e: Entities.Enemy) -> Node3D:
 		cone.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		cone.visible = false
 		n.add_child(cone)
-	if et.attack == "leap" or et.attack == "burrow":
+	if et.has_attack("leap") or et.has_attack("stomp") or et.attack == "burrow":
 		var ring := TorusMesh.new()
 		ring.inner_radius = 0.86
 		ring.outer_radius = 1.0
@@ -1150,7 +1582,7 @@ func _make_enemy(e: Entities.Enemy) -> Node3D:
 		mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mark.visible = false
 		n.add_child(mark)
-	if et.attack == "charge":
+	if et.has_attack("charge"):
 		var lc: Color = pal.col("hud_warn")
 		var lmat := _mat(lc, 1.0, 0.0, lc, 1.5)
 		lmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -1161,7 +1593,7 @@ func _make_enemy(e: Entities.Enemy) -> Node3D:
 		lane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		lane.visible = false
 		n.add_child(lane)
-	var bar := _mesh(_box(1.6, 0.08, 0.08), _mat(pal.col("hud_warn"), 0.5, 0.0, pal.col("hud_warn"), 1.5))
+	var bar := _mesh(_box(1.6 if not et.boss else et.radius * 1.6, 0.08, 0.08), _mat(pal.col("hud_warn"), 0.5, 0.0, pal.col("hud_warn"), 1.5))
 	bar.name = "hp"
 	bar.position.y = et.height + 0.55
 	bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -1254,6 +1686,139 @@ func _grub(body: Node3D, et: Types.EnemyType, tint: Color) -> void:
 		eye.position = Vector3(sx, et.height * 0.7, et.radius * 1.45)
 		body.add_child(eye)
 	_legs(body, et, tint.darkened(0.3), 6, 0.5, 0.6)
+
+
+## Campsites: a tent, a fire ring, and a beacon post with a lantern. The lantern and the fire are
+## lit at whichever camp holds the Hold now; the Hold's rings stand round that camp.
+var _camp_nodes: Dictionary = {} # camp id -> Node3D (its beacon root)
+
+
+func _build_camps(w: SimWorld) -> void:
+	var tent_m := _mat(pal.col("tent"), 0.9, 0.0)
+	var pole_m := _mat(pal.col("bark"), 0.9, 0.0)
+	var stone_m := _mat(pal.col("scatter_stone"), 1.0, 0.0)
+	var ash_m := _mat(pal.col("terrain_loam").darkened(0.5), 1.0, 0.0)
+	for cp: Dictionary in w.camps:
+		var id: String = cp["id"]
+		var c: Vector3 = cp["pos"]
+		var root := Node3D.new()
+		root.position = CampSystem.beacon(w, cp)
+		add_child(root)
+		var post := _mesh(_cyl(0.09, 2.8), pole_m)
+		post.position.y = 1.4
+		root.add_child(post)
+		var arm := _mesh(_cyl(0.05, 0.7), pole_m)
+		arm.rotation.z = PI * 0.5
+		arm.position = Vector3(0.3, 2.75, 0.0)
+		root.add_child(arm)
+		var lamp := _mesh(_ico(0.22), _mat(pal.col("camp_fire"), 0.4, 0.0, pal.col("camp_fire"), 0.0))
+		lamp.name = "lamp"
+		lamp.position = Vector3(0.62, 2.45, 0.0)
+		root.add_child(lamp)
+		var light := OmniLight3D.new()
+		light.name = "light"
+		light.light_color = pal.col("camp_fire")
+		light.omni_range = 10.0
+		light.light_energy = 0.0
+		light.shadow_enabled = false
+		light.position = lamp.position
+		root.add_child(light)
+		var label := Label3D.new()
+		label.name = "label"
+		label.text = str(cp["name"]).to_upper()
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.fixed_size = true
+		label.font_size = 36
+		label.pixel_size = 0.0007
+		label.outline_size = 10
+		label.modulate = pal.col("camp_fire").lightened(0.3)
+		label.outline_modulate = Color(0.04, 0.05, 0.06, 0.9)
+		label.position.y = 3.6
+		root.add_child(label)
+		_camp_nodes[id] = root
+		if id == "home":
+			continue # the Hold's own cairn stands at home
+		# the tent: a ridge tent, two slopes and a ridge pole
+		var tent := Node3D.new()
+		tent.position = w.ground(c + Vector3(4.0, 0.0, 2.0))
+		tent.rotation.y = 0.7
+		add_child(tent)
+		# a three-sided prism lying along z, one face flat on the ground, the ridge on top
+		var prism := CylinderMesh.new()
+		prism.top_radius = 1.3
+		prism.bottom_radius = 1.3
+		prism.height = 3.2
+		prism.radial_segments = 3
+		prism.rings = 1
+		var body := _mesh(prism, tent_m)
+		body.rotation.x = -PI * 0.5
+		body.position.y = 0.65
+		tent.add_child(body)
+		var door := _mesh(_box(0.9, 1.2, 0.05), _mat(pal.col("tent").darkened(0.45), 1.0, 0.0))
+		door.position = Vector3(0.0, 0.6, 1.62)
+		tent.add_child(door)
+		var ridge := _mesh(_cyl(0.05, 3.5), pole_m)
+		ridge.rotation.x = PI * 0.5
+		ridge.position.y = 1.97
+		tent.add_child(ridge)
+		# the fire ring
+		var fire := Node3D.new()
+		fire.position = w.ground(c + Vector3(-2.5, 0.0, 1.5))
+		add_child(fire)
+		for k: int in 7:
+			var a: float = float(k) / 7.0 * TAU
+			var st := _mesh(_ico(0.22), stone_m)
+			st.position = Vector3(sin(a) * 0.6, 0.1, cos(a) * 0.6)
+			fire.add_child(st)
+		var ash := _mesh(_cyl(0.5, 0.05), ash_m)
+		fire.add_child(ash)
+		var flame := _mesh(_ico(0.32), _mat(pal.col("vent_fire"), 0.4, 0.0, pal.col("vent_fire"), 3.0))
+		flame.name = "flame"
+		flame.position.y = 0.3
+		flame.scale = Vector3(1.0, 1.6, 1.0)
+		root.set_meta("flame", flame)
+		fire.add_child(flame)
+
+
+func _sync_camps(w: SimWorld, t: float) -> void:
+	var hp: Vector3 = w.ground(w.hold.pos)
+	_hold_ring.position = hp + Vector3(0.0, 0.08, 0.0)
+	_safe_ring.position = hp + Vector3(0.0, 0.05, 0.0)
+	for id: Variant in _camp_nodes.keys():
+		var root: Node3D = _camp_nodes[id]
+		var here: bool = str(id) == w.camp_id
+		var light: OmniLight3D = root.get_node("light")
+		light.light_energy = (2.6 + 0.4 * sin(t * 9.0)) if here else 0.0
+		var lamp: MeshInstance3D = root.get_node("lamp")
+		var lm: StandardMaterial3D = lamp.material_override
+		lm.emission_enabled = true
+		lm.emission = pal.col("camp_fire")
+		lm.emission_energy_multiplier = 3.0 if here else 0.05
+		if root.has_meta("flame"):
+			var flame: MeshInstance3D = root.get_meta("flame")
+			flame.visible = here
+			flame.scale = Vector3(1.0, 1.4 + 0.3 * sin(t * 11.0), 1.0)
+
+
+## A boss's crown: a ridge of great horns along its back, glowing faintly.
+func _spikes(body: Node3D, et: Types.EnemyType, c: Color, n: int) -> void:
+	var m := _mat(c, 0.5, 0.1, c, 0.35)
+	for k: int in n:
+		var u: float = float(k) / float(maxi(1, n - 1))
+		var horn := CylinderMesh.new()
+		horn.top_radius = 0.0
+		horn.bottom_radius = et.radius * (0.16 + 0.08 * sin(u * PI))
+		horn.height = et.height * (0.4 + 0.35 * sin(u * PI))
+		horn.radial_segments = 7
+		var hm := _mesh(horn, m)
+		hm.position = Vector3(0.0, et.height * (0.95 + 0.1 * sin(u * PI)), et.radius * (0.9 - 1.8 * u))
+		hm.rotation.x = -0.35
+		body.add_child(hm)
+	for sx: float in [-1.0, 1.0]:
+		var eye_c: Color = pal.col("enemy_night_eye")
+		var glow := _mesh(_ico(et.radius * 0.07), _mat(eye_c, 0.3, 0.0, eye_c, 3.0))
+		glow.position = Vector3(et.radius * 0.22 * sx, et.height * 0.62, et.radius * 1.32)
+		body.add_child(glow)
 
 
 ## A hog with a bellows chest: it swells, then breathes its hazard out of a glowing snout.

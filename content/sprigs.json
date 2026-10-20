@@ -1,5 +1,5 @@
 {
-  "_doc": "Sprig types. Names decode on sight (interface naming law). attack: latch = hang on and slap; impact = hit once on landing, never latch. immune: hazard ids from hazards.json. strength: carry contribution. damage: per slap. lag_bias: extra follow lag so types read differently in a crowd. throw_height: the arc's apex above the launch point; flight time follows from it, so a throw over the same wall always clears it. scale: body size on screen. wings: draws and flaps wings (flyers).",
+  "_doc": "Sprig types. Names decode on sight (interface naming law). attack: latch = hang on and slap; impact = hit once on landing, never latch. immune: hazard ids from hazards.json. strength: carry contribution. damage: per slap. lag_bias: extra follow lag so types read differently in a crowd. throw_height: the arc's apex above the launch point; flight time follows from it, so a throw over the same wall always clears it. scale: body size on screen. wings: draws and flaps wings (flyers). feature: \"nose\" or \"ears\", a look of its own.",
   "types": [
     {
       "id": "ember",
@@ -19,7 +19,8 @@
       "line": "Walks through fire. Hits harder than the rest.",
       "throw_height": 1.5,
       "scale": 1.0,
-      "wings": false
+      "wings": false,
+      "feature": "nose"
     },
     {
       "id": "stone",
@@ -60,7 +61,8 @@
       "line": "Thrown highest. Digs fastest. Carries a charge.",
       "throw_height": 2.4,
       "scale": 0.95,
-      "wings": false
+      "wings": false,
+      "feature": "ears"
     },
     {
       "id": "tide",

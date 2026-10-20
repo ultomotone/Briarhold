@@ -91,7 +91,10 @@ func _validate() -> void:
 			errors.append("enemy %s has a bad bite_count or hp" % id)
 		if not ["bite", "breath", "leap", "charge", "gust", "burrow", "none"].has(en.attack):
 			errors.append("enemy %s has unknown attack %s" % [id, en.attack])
-		if en.attack == "breath" and not hazards.has(en.breath_hazard):
+		for m: Dictionary in en.moves:
+			if not ["bite", "breath", "leap", "charge", "gust", "stomp", "none"].has(str(m["attack"])):
+				errors.append("enemy %s has unknown move %s" % [id, str(m["attack"])])
+		if en.has_attack("breath") and not hazards.has(en.breath_hazard):
 			errors.append("enemy %s breathes unknown hazard %s" % [id, en.breath_hazard])
 	if world.is_empty():
 		errors.append("world.json empty")

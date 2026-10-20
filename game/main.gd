@@ -237,6 +237,7 @@ func _physics_process(delta: float) -> void:
 	cmd.swarm_held = Input.is_action_pressed("swarm")
 	cmd.pluck_held = Input.is_action_pressed("pluck")
 	cmd.store_held = Input.is_action_pressed("store")
+	cmd.camp_held = Input.is_action_pressed("camp")
 	cmd.cursor = cursor
 	if sim.nav_dirty and nav != null:
 		nav.bake(sim, terrain.arrays, true)
@@ -260,6 +261,9 @@ func _process(delta: float) -> void:
 	if mode == Mode.PLAY:
 		rig.follow(kp, delta)
 		_update_cursor()
+	# tall things cut a window round him (Cutout)
+	RenderingServer.global_shader_parameter_set("focus_pos", kp + Vector3(0.0, 0.7, 0.0))
+	sky.follow(kp, sim.field.climate(kp.x, kp.z), rig.dist, delta)
 	sky.apply(sim.clock.time, sim.clock.day_seconds, sim.clock.night_seconds)
 	var swing: float = -1.0
 	if k.swing_t >= 0.0:
@@ -330,6 +334,16 @@ func shot_pose(name: String) -> void:
 			_shot_whistle = true
 		"bestiary":
 			_shot_bestiary()
+		"arctic":
+			_shot_climate(0)
+		"desert":
+			_shot_climate(1)
+		"jungle":
+			_shot_climate(2)
+		"forest":
+			_shot_forest()
+		"boss":
+			_shot_boss()
 		"far":
 			_shot_far()
 		_:
@@ -364,6 +378,89 @@ func _shot_bestiary() -> void:
 	rig.dist_target = 15.0
 	rig.dist = 15.0
 	cursor = sim.ground(at + Vector3(0.0, 0.0, -6.0))
+
+
+## Shot seam helpers: stand him (and his squad) at p facing yaw, camera behind at dist.
+func _shot_stand(p: Vector3, yaw: float, dist: float) -> void:
+	_shot_whistle = false
+	var at: Vector3 = sim.ground(p)
+	sim.knight.pos = at
+	sim.knight.prev = at
+	sim.knight.yaw = yaw
+	for s: Entities.Sprig in sim.sprigs:
+		if s.state == Entities.Sprig.State.FOLLOW:
+			s.pos = sim.ground(at + Vector3(float(s.id % 5) * 0.45 - 0.9, 0.0, 0.0) - Vector3(sin(yaw), 0.0, cos(yaw)) * (1.2 + float(s.id % 3) * 0.4))
+			s.prev = s.pos
+			s.smooth_target = s.pos
+	sim.anchor = Vector3.INF
+	rig.focus = at
+	rig.yaw_target = yaw + PI
+	rig.yaw = rig.yaw_target
+	rig.dist_target = dist
+	rig.dist = dist
+	sky.climate_here = sim.field.climate(at.x, at.z)
+	cursor = sim.ground(at + Vector3(sin(yaw), 0.0, cos(yaw)) * 5.0)
+
+
+## Shot seam: the nearest open ground deep in a far climate (0 arctic, 1 desert, 2 jungle).
+func _shot_climate(idx: int) -> void:
+	var best := Vector3.INF
+	var best_d: float = 1e9
+	var b: float = sim.field.bound - 10.0
+	var step: float = 8.0
+	var x: float = -b
+	while x <= b:
+		var z: float = -b
+		while z <= b:
+			var cl: Vector3 = sim.field.climate(x, z)
+			var d: float = x * x + z * z
+			if cl[idx] > 0.85 and d < best_d and not sim.blocked_wide(Vector3(x, 0.0, z), 3.0):
+				best = Vector3(x, 0.0, z)
+				best_d = d
+			z += step
+		x += step
+	if best == Vector3.INF:
+		return
+	sim.enemies.clear()
+	_shot_stand(best, atan2(-best.x, -best.z) + PI, 16.0)
+
+
+## Shot seam: at the mouth of a hollow log, looking down it.
+func _shot_forest() -> void:
+	for sc: Dictionary in sim.scenery:
+		if sc["kind"] != "hollow":
+			continue
+		var a: Vector3 = sc["a"]
+		var b: Vector3 = sc["b"]
+		var dir: Vector3 = Vector3(b.x - a.x, 0.0, b.z - a.z).normalized()
+		sim.enemies.clear()
+		_shot_stand(a - dir * 4.0, atan2(dir.x, dir.z), 14.0)
+		return
+
+
+## Shot seam: at the edge of a boss arena with the boss awake and coming.
+func _shot_boss() -> void:
+	for ar: Dictionary in sim.arenas:
+		if str(ar["boss"]) != "thornback_behemoth":
+			continue
+		var c: Vector3 = ar["pos"]
+		var toward: Vector3 = (Vector3.ZERO - c)
+		toward.y = 0.0
+		toward = toward.normalized()
+		# the earlier shots cleared the field: a fresh boss, awake at the centre, facing him, a
+		# moment before it decides what to do
+		sim.enemies.clear()
+		var e: Entities.Enemy = sim.spawn_enemy("thornback_behemoth", c)
+		e.state = Entities.Enemy.State.IDLE
+		e.yaw = atan2(toward.x, toward.z)
+		e.cooldown = 5.0
+		_shot_stand(c + toward * 10.0, atan2(-toward.x, -toward.z), 22.0)
+		return
+
+
+func w_is_boss(e: Entities.Enemy) -> bool:
+	var et: Types.EnemyType = sim.enemy_type(e)
+	return et != null and et.boss
 
 
 ## Shot seam: zoomed far out over a ruin, to see the lie of the land.

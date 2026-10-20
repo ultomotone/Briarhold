@@ -17,7 +17,7 @@ static func step(w: SimWorld, cmd: Commands, dt: float) -> void:
 			w.events.push("knight_up", {"pos": k.pos})
 		return
 
-	var speed: float = c.wn("knight", "speed", 5.2)
+	var speed: float = c.wn("knight", "speed", 5.2) * w.ground_mult(k.pos, "knight")
 	if cmd.walk_target != Vector3.INF:
 		k.walk_target = cmd.walk_target
 	if cmd.move_dir.length_squared() > 0.001:

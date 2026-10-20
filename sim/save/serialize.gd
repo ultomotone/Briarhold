@@ -45,6 +45,7 @@ static func to_doc(w: SimWorld, now_unix: int) -> Dictionary:
 		"deltas": deltas,
 		"lost_total": w.lost_total,
 		"discovered": Array(w.discovered),
+		"camp": w.camp_id,
 	}
 
 
@@ -113,6 +114,11 @@ static func from_doc(tables: ContentTables, raw: Dictionary) -> SimWorld:
 	w.clock.time = float(doc["clock_time"])
 	w.lost_total = int(doc["lost_total"])
 	w.discovered = PackedStringArray(doc.get("discovered", []))
+	# the Hold stands at its camp; the shrines came back at their saved places above
+	var cp: Dictionary = CampSystem.camp_by_id(w, str(doc.get("camp", "home")))
+	if not cp.is_empty():
+		w.camp_id = str(cp["id"])
+		w.hold.pos = w.ground(cp["pos"])
 	w._end_tick()
 	w.nav_dirty = true
 	return w

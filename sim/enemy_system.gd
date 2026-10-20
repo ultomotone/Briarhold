@@ -148,15 +148,22 @@ static func _hunt(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType, dt: float)
 		e.target_kind = ""
 		e.state = Entities.Enemy.State.IDLE
 		return
-	var reach: float = t.attack_range
-	if t.attack == "burrow":
-		reach = t.bite_reach + t.radius # above ground it bites like anything else
-	if SimWorld.flat_dist(e.pos, e.target_pos) <= reach:
+	# the first move, in turn from where it left off, whose range the target is inside
+	var dist: float = SimWorld.flat_dist(e.pos, e.target_pos)
+	var n: int = t.moves.size()
+	var chosen: int = -1
+	for k: int in n:
+		var idx: int = (e.move_i + k) % n
+		if dist <= float(t.moves[idx]["range"]):
+			chosen = idx
+			break
+	if chosen >= 0:
+		# in range: strike when ready; until then hold its ground, turning to face (a biter
+		# does not even turn: it waits with its mouth where it was)
 		if e.cooldown <= 0.0:
-			_wind_up(w, e, t)
-		elif t.attack == "bite" or t.attack == "burrow":
-			return
-		else:
+			e.move_i = (chosen + 1) % n
+			_wind_up(w, e, t, t.moves[chosen])
+		elif str(t.moves[chosen]["attack"]) != "bite":
 			e.yaw = SimWorld.yaw_toward(e.pos, e.target_pos, e.yaw)
 		return
 	e.yaw = SimWorld.yaw_toward(e.pos, e.target_pos, e.yaw)
@@ -164,20 +171,24 @@ static func _hunt(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType, dt: float)
 
 
 ## The visible wind-up. Where the strike will land is fixed now, so he can step out of it.
-static func _wind_up(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType) -> void:
+static func _wind_up(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType, move: Dictionary) -> void:
 	e.state = Entities.Enemy.State.TELEGRAPH
 	e.timer = t.telegraph_seconds
+	e.attack_now = str(move["attack"])
+	e.reach_now = float(move["range"])
 	e.yaw = SimWorld.yaw_toward(e.pos, e.target_pos, e.yaw)
 	e.aim = e.target_pos
-	if t.attack == "leap" and SimWorld.flat_dist(e.pos, e.aim) > t.attack_range:
-		e.aim = e.pos + (e.aim - e.pos).normalized() * t.attack_range
+	if e.attack_now == "leap" and SimWorld.flat_dist(e.pos, e.aim) > e.reach_now:
+		e.aim = e.pos + (e.aim - e.pos).normalized() * e.reach_now
+	if e.attack_now == "stomp":
+		e.aim = e.pos
 	e.aim = w.ground(w.field.clamp_bound(e.aim))
-	w.events.push("telegraph", {"pos": e.pos, "type": e.type_id, "seconds": t.telegraph_seconds, "attack": t.attack, "aim": e.aim})
+	w.events.push("telegraph", {"pos": e.pos, "type": e.type_id, "seconds": t.telegraph_seconds, "attack": e.attack_now, "aim": e.aim})
 
 
 static func _strike(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType) -> void:
 	e.strike_t = 0.0
-	match t.attack:
+	match e.attack_now:
 		"breath":
 			_breath(w, e, t)
 		"gust":
@@ -186,10 +197,36 @@ static func _strike(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType) -> void:
 			_begin_leap(w, e, t)
 		"charge":
 			_begin_rush(w, e, t)
+		"stomp":
+			_stomp(w, e, t)
 		"none":
 			_recover(e, t, t.attack_cooldown)
 		_:
 			_bite(w, e, t)
+
+
+## It rears and comes down where it stands: everything within range that is not immune to crush
+## is flattened, and whatever is hanging on is thrown off.
+static func _stomp(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType) -> void:
+	_recover(e, t, t.attack_cooldown)
+	var reach: float = e.reach_now
+	_shake_off(w, e, t)
+	var n: int = 0
+	for sid: int in w.hash.query(e.pos, reach):
+		var s: Entities.Sprig = w.sprig_by_id(sid)
+		if s == null or s.state == Entities.Sprig.State.DEAD or s.state == Entities.Sprig.State.THROWN or s.latched:
+			continue
+		if SimWorld.flat_dist(s.pos, e.pos) > reach:
+			continue
+		if w.sprig_type(s).immune.has("crush"):
+			s.stun = maxf(s.stun, 0.6)
+			continue
+		w.kill_sprig(s, "stamped flat by " + t.name)
+		n += 1
+	var k: Entities.Knight = w.knight
+	if k.down_t < 0.0 and SimWorld.flat_dist(k.pos, e.pos) <= reach + 0.3:
+		Damage.to_knight(w, t.damage_to_knight, t.name + " stomp")
+	w.events.push("slam", {"pos": e.pos, "radius": reach, "type": e.type_id, "crushed": n})
 
 
 static func _recover(e: Entities.Enemy, t: Types.EnemyType, seconds: float) -> void:
@@ -320,7 +357,7 @@ static func _in_cone(e: Entities.Enemy, t: Types.EnemyType, p: Vector3, reach: f
 ## poison status sends it running); the gnome takes a knock.
 static func _breath(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType) -> void:
 	_recover(e, t, t.attack_cooldown)
-	var reach: float = t.attack_range + 0.4
+	var reach: float = e.reach_now + 0.4
 	var hit: int = 0
 	for sid: int in w.hash.query(e.pos, reach):
 		var s: Entities.Sprig = w.sprig_by_id(sid)
@@ -340,7 +377,7 @@ static func _breath(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType) -> void:
 ## held. Anything immune to gust (the Oaks, by weight) stands firm. The gnome is pushed back.
 static func _gust(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType) -> void:
 	_recover(e, t, t.attack_cooldown)
-	var reach: float = t.attack_range + 0.4
+	var reach: float = e.reach_now + 0.4
 	var blown: int = 0
 	for sid: int in w.hash.query(e.pos, reach):
 		var s: Entities.Sprig = w.sprig_by_id(sid)
@@ -562,7 +599,8 @@ static func _retreat(w: SimWorld, e: Entities.Enemy, t: Types.EnemyType, dt: flo
 	away.y = 0.0
 	if away.length() < 0.01:
 		away = Vector3(1.0, 0.0, 0.0)
-	var rim: Vector3 = w.hold.pos + away.normalized() * (w.field.bound - 1.0)
+	# off into the dark: a long way from the Hold, or the field's edge, whichever is nearer
+	var rim: Vector3 = w.field.clamp_bound(w.hold.pos + away.normalized() * minf(w.field.bound - 1.0, 85.0))
 	e.yaw = SimWorld.yaw_toward(e.pos, rim, e.yaw)
 	e.pos = w.step_toward(e.pos, rim, t.speed * 1.4, dt, t.radius)
 	if SimWorld.flat_dist(e.pos, rim) < 1.5:
@@ -578,7 +616,7 @@ static func on_night(w: SimWorld) -> void:
 	var base_ang: float = r.randf() * TAU
 	for i: int in count:
 		var ang: float = base_ang + float(i) * 0.35 + (r.randf() - 0.5) * 0.4
-		var p: Vector3 = w.hold.pos + Vector3(sin(ang), 0.0, cos(ang)) * (w.field.bound - 3.0)
+		var p: Vector3 = w.field.clamp_bound(w.hold.pos + Vector3(sin(ang), 0.0, cos(ang)) * minf(w.field.bound - 3.0, 75.0))
 		var e: Entities.Enemy = w.spawn_enemy("night_stalker", p)
 		e.state = Entities.Enemy.State.IDLE
 	w.events.push("raid", {"count": count, "day": w.clock.day})
